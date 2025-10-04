@@ -1,0 +1,72 @@
+# --- OS-specific files ---
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# --- IDE / Editors ---
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+*.xcworkspace/
+
+# --- Flutter / Dart / Pub ---
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+**/doc/api/
+
+# iOS specific
+ios/Flutter/.last_build_id
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# Android specific
+.android/
+.gradle/
+captures/
+android/app/debug
+android/app/profile
+android/app/release
+
+# --- Obfuscation / Symbolication ---
+app.*.map.json
+app.*.symbols
+
+# --- FVM ---
+.fvm/flutter_sdk
+.fvm/versions/
+
+# --- Misc ---
+*.log
+*.swp
+*.tmp
+*.pid
+*.seed
+*.pid.lock

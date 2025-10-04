@@ -1,0 +1,219 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import '../models/task.dart';
+
+class TaskDetailScreen extends StatefulWidget {
+  final Task task;
+
+  const TaskDetailScreen({super.key, required this.task});
+
+  @override
+  State<TaskDetailScreen> createState() => _TaskDetailScreenState();
+}
+
+class _TaskDetailScreenState extends State<TaskDetailScreen> {
+  final List<XFile> _images = [];
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        setState(() => _images.add(image));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
+      }
+    }
+  }
+
+  Future<void> _takePhoto() async {
+    try {
+      final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
+      if (photo != null) {
+        setState(() => _images.add(photo));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error taking photo: $e')));
+      }
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() => _images.removeAt(index));
+  }
+
+  Color _getDifficultyColor() {
+    switch (widget.task.difficulty) {
+      case TaskDifficulty.easy:
+        return Colors.greenAccent;
+      case TaskDifficulty.medium:
+        return Colors.amberAccent;
+      case TaskDifficulty.hard:
+        return Colors.redAccent;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pixelFont = GoogleFonts.pressStart2p(
+      textStyle: const TextStyle(color: Colors.white, fontSize: 10),
+    );
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        centerTitle: true,
+        elevation: 0,
+        title: Text(
+          widget.task.title.toUpperCase(),
+          style: pixelFont.copyWith(fontSize: 12),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(2),
+          child: Container(color: _getDifficultyColor(), height: 2),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.task.description,
+              style: pixelFont.copyWith(fontSize: 8, color: Colors.white70),
+            ),
+            const SizedBox(height: 24),
+
+            // Buttons (Gallery + Camera)
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _pickImage,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _getDifficultyColor(),
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero, // pixel edges
+                      ),
+                    ),
+                    child: Text(
+                      "GALLERY",
+                      style: pixelFont.copyWith(fontSize: 8),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _takePhoto,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _getDifficultyColor(),
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero,
+                      ),
+                    ),
+                    child: Text(
+                      "CAMERA",
+                      style: pixelFont.copyWith(fontSize: 8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Images
+            if (_images.isNotEmpty) ...[
+              Text(
+                "UPLOADED IMAGES",
+                style: pixelFont.copyWith(
+                  fontSize: 8,
+                  color: _getDifficultyColor(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: _images.length,
+                itemBuilder: (context, index) {
+                  return Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: _getDifficultyColor(),
+                            width: 2,
+                          ),
+                        ),
+                        child: Image.file(
+                          File(_images[index].path),
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                        ),
+                      ),
+                      Positioned(
+                        top: 2,
+                        right: 2,
+                        child: Container(
+                          color: Colors.redAccent,
+                          child: IconButton(
+                            icon: const Icon(Icons.close, size: 12),
+                            color: Colors.black,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () => _removeImage(index),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ] else
+              Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.image_outlined,
+                      size: 48,
+                      color: Colors.grey[700],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "NO IMAGES YET",
+                      style: pixelFont.copyWith(
+                        color: Colors.grey,
+                        fontSize: 8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
