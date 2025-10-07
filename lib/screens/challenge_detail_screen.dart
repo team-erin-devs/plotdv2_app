@@ -1,18 +1,18 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../models/task.dart';
+import '../models/challenge.dart';
 
-class TaskDetailScreen extends StatefulWidget {
-  final Task task;
+class ChallengeDetailScreen extends StatefulWidget {
+  final Challenge challenge;
 
-  const TaskDetailScreen({super.key, required this.task});
+  const ChallengeDetailScreen({super.key, required this.challenge});
 
   @override
-  State<TaskDetailScreen> createState() => _TaskDetailScreenState();
+  State<ChallengeDetailScreen> createState() => _ChallengeDetailScreenState();
 }
 
-class _TaskDetailScreenState extends State<TaskDetailScreen> {
+class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
   final List<XFile> _images = [];
   final ImagePicker _picker = ImagePicker();
 
@@ -49,12 +49,12 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   void _removeImage(int index) => setState(() => _images.removeAt(index));
 
   Color _getDifficultyColor() {
-    switch (widget.task.difficulty) {
-      case TaskDifficulty.easy:
+    switch (widget.challenge.difficulty) {
+      case ChallengeDifficulty.easy:
         return Colors.greenAccent;
-      case TaskDifficulty.medium:
+      case ChallengeDifficulty.medium:
         return Colors.amberAccent;
-      case TaskDifficulty.hard:
+      case ChallengeDifficulty.hard:
         return Colors.redAccent;
     }
   }
@@ -69,7 +69,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
         centerTitle: true,
         elevation: 0,
         title: Text(
-          widget.task.title,
+          widget.challenge.title,
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -87,7 +87,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.task.description,
+              widget.challenge.description,
               style: const TextStyle(fontSize: 14, color: Colors.white70),
             ),
             const SizedBox(height: 24),

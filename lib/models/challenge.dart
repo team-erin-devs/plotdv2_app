@@ -1,12 +1,12 @@
-enum TaskDifficulty { easy, medium, hard }
+enum ChallengeDifficulty { easy, medium, hard }
 
-class Task {
+class Challenge {
   final String id;
   final String title;
   final String description;
-  final TaskDifficulty difficulty;
+  final ChallengeDifficulty difficulty;
 
-  Task({
+  Challenge({
     required this.id,
     required this.title,
     required this.description,

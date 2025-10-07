@@ -1,30 +1,30 @@
 import 'package:flutter/material.dart';
-import '../models/task.dart';
-import '../screens/task_detail_screen.dart';
+import '../models/challenge.dart';
+import '../screens/challenge_detail_screen.dart';
 
-class TaskCard extends StatelessWidget {
-  final Task task;
+class ChallengeCard extends StatelessWidget {
+  final Challenge challenge;
 
-  const TaskCard({super.key, required this.task});
+  const ChallengeCard({super.key, required this.challenge});
 
   Color _getDifficultyColor() {
-    switch (task.difficulty) {
-      case TaskDifficulty.easy:
+    switch (challenge.difficulty) {
+      case ChallengeDifficulty.easy:
         return Colors.greenAccent;
-      case TaskDifficulty.medium:
+      case ChallengeDifficulty.medium:
         return Colors.amberAccent;
-      case TaskDifficulty.hard:
+      case ChallengeDifficulty.hard:
         return Colors.redAccent;
     }
   }
 
   String _getDifficultyLabel() {
-    switch (task.difficulty) {
-      case TaskDifficulty.easy:
+    switch (challenge.difficulty) {
+      case ChallengeDifficulty.easy:
         return 'EASY';
-      case TaskDifficulty.medium:
+      case ChallengeDifficulty.medium:
         return 'MEDIUM';
-      case TaskDifficulty.hard:
+      case ChallengeDifficulty.hard:
         return 'HARD';
     }
   }
@@ -40,7 +40,7 @@ class TaskCard extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => TaskDetailScreen(task: task),
+              builder: (context) => ChallengeDetailScreen(challenge: challenge),
             ),
           );
         },
@@ -55,7 +55,7 @@ class TaskCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      task.title,
+                      challenge.title,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -85,7 +85,7 @@ class TaskCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                task.description,
+                challenge.description,
                 style: const TextStyle(fontSize: 14, color: Colors.white70),
               ),
             ],
