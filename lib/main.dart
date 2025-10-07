@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'models/task.dart';
-import 'widgets/task_card.dart';
+import 'package:team_erin_app/screens/challenges_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,8 +11,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pixelFont = GoogleFonts.pressStart2p();
-
     return MaterialApp(
       title: 'Challenge App',
       theme: ThemeData(
@@ -27,84 +24,53 @@ class MyApp extends StatelessWidget {
           secondary: Colors.grey,
         ),
         textTheme: TextTheme(
-          headlineLarge: pixelFont.copyWith(fontSize: 16, color: Colors.white),
-          bodyMedium: pixelFont.copyWith(fontSize: 10, color: Colors.white70),
+          headlineLarge: TextStyle(fontSize: 16, color: Colors.white),
+          bodyMedium: TextStyle(fontSize: 14, color: Colors.white70),
         ),
         useMaterial3: false, // retro vibe
       ),
-      home: const HomePage(),
+      home: const MainNavigation(),
     );
   }
 }
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+// Main Navigation with Bottom Nav Bar
+class MainNavigation extends StatefulWidget {
+  const MainNavigation({super.key});
+
+  @override
+  State<MainNavigation> createState() => _MainNavigationState();
+}
+
+class _MainNavigationState extends State<MainNavigation> {
+  int _selectedIndex = 0;
+
+  final List<Widget> _pages = [const ChallengesScreen()];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final pixelFont = GoogleFonts.pressStart2p(
-      textStyle: const TextStyle(color: Colors.white),
-    );
-
-    final List<Task> challenges = [
-      Task(
-        id: '1',
-        title: 'Morning Workout',
-        description: 'Complete a 30-minute morning exercise routine',
-        difficulty: TaskDifficulty.easy,
-      ),
-      Task(
-        id: '2',
-        title: 'Cook a New Recipe',
-        description: 'Try cooking a dish you\'ve never made before',
-        difficulty: TaskDifficulty.medium,
-      ),
-      Task(
-        id: '3',
-        title: 'Learn a Dance Routine',
-        description: 'Master a full choreographed dance routine',
-        difficulty: TaskDifficulty.hard,
-      ),
-    ];
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'DA2ILY CHALLENGES',
-          style: pixelFont.copyWith(fontSize: 12),
-        ),
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        centerTitle: true,
-        elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(2),
-          child: Container(color: Colors.grey[800], height: 2),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'TODAY\'S CHALLENGES',
-              style: pixelFont.copyWith(fontSize: 10, color: Colors.white),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                itemCount: challenges.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: TaskCard(task: challenges[index]),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.grey,
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Challenges'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.leaderboard),
+            label: 'Leaderboard',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
       ),
     );
   }

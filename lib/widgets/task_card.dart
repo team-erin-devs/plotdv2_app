@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../models/task.dart';
 import '../screens/task_detail_screen.dart';
 
@@ -32,17 +31,10 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pixelFont = GoogleFonts.pressStart2p(
-      textStyle: const TextStyle(fontSize: 10, color: Colors.white),
-    );
-
     return Card(
-      color: Colors.black,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.zero, // pixel vibe
-        side: BorderSide(color: _getDifficultyColor(), width: 2),
-      ),
+      color: Colors.grey[900], // dark minimalist background
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
           Navigator.push(
@@ -53,20 +45,21 @@ class TaskCard extends StatelessWidget {
           );
         },
         child: Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(14.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Title + Difficulty Badge
+              // Title + Difficulty Label
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: Text(
-                      task.title.toUpperCase(),
-                      style: pixelFont.copyWith(
-                        fontSize: 12,
+                      task.title,
+                      style: const TextStyle(
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -76,14 +69,15 @@ class TaskCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: _getDifficultyColor(),
-                      borderRadius: BorderRadius.zero,
+                      color: _getDifficultyColor().withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       _getDifficultyLabel(),
-                      style: pixelFont.copyWith(
-                        fontSize: 8,
-                        color: Colors.black,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _getDifficultyColor(),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -92,7 +86,7 @@ class TaskCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 task.description,
-                style: pixelFont.copyWith(fontSize: 8, color: Colors.white70),
+                style: const TextStyle(fontSize: 14, color: Colors.white70),
               ),
             ],
           ),

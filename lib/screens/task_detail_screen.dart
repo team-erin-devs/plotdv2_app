@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/task.dart';
 
@@ -47,9 +46,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     }
   }
 
-  void _removeImage(int index) {
-    setState(() => _images.removeAt(index));
-  }
+  void _removeImage(int index) => setState(() => _images.removeAt(index));
 
   Color _getDifficultyColor() {
     switch (widget.task.difficulty) {
@@ -64,10 +61,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pixelFont = GoogleFonts.pressStart2p(
-      textStyle: const TextStyle(color: Colors.white, fontSize: 10),
-    );
-
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -76,8 +69,12 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
         centerTitle: true,
         elevation: 0,
         title: Text(
-          widget.task.title.toUpperCase(),
-          style: pixelFont.copyWith(fontSize: 12),
+          widget.task.title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(2),
@@ -91,11 +88,11 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
           children: [
             Text(
               widget.task.description,
-              style: pixelFont.copyWith(fontSize: 8, color: Colors.white70),
+              style: const TextStyle(fontSize: 14, color: Colors.white70),
             ),
             const SizedBox(height: 24),
 
-            // Buttons (Gallery + Camera)
+            // Buttons
             Row(
               children: [
                 Expanded(
@@ -105,13 +102,16 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                       backgroundColor: _getDifficultyColor(),
                       foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.zero, // pixel edges
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       "GALLERY",
-                      style: pixelFont.copyWith(fontSize: 8),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -123,13 +123,16 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                       backgroundColor: _getDifficultyColor(),
                       foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       "CAMERA",
-                      style: pixelFont.copyWith(fontSize: 8),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -141,8 +144,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
             if (_images.isNotEmpty) ...[
               Text(
                 "UPLOADED IMAGES",
-                style: pixelFont.copyWith(
-                  fontSize: 8,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
                   color: _getDifficultyColor(),
                 ),
               ),
@@ -179,7 +183,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                         child: Container(
                           color: Colors.redAccent,
                           child: IconButton(
-                            icon: const Icon(Icons.close, size: 12),
+                            icon: const Icon(Icons.close, size: 16),
                             color: Colors.black,
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
@@ -201,12 +205,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                       color: Colors.grey[700],
                     ),
                     const SizedBox(height: 8),
-                    Text(
+                    const Text(
                       "NO IMAGES YET",
-                      style: pixelFont.copyWith(
-                        color: Colors.grey,
-                        fontSize: 8,
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                   ],
                 ),
