@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:team_erin_app/screens/challenges_screen.dart';
+import 'package:team_erin_app/screens/leaderboard_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -45,7 +46,11 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = [const ChallengesScreen()];
+  final List<Widget> _pages = [
+    const ChallengesScreen(),
+    const LeaderboardScreen(),
+    const Placeholder(), // TODO: Profile screen
+  ];
 
   void _onItemTapped(int index) {
     setState(() {
