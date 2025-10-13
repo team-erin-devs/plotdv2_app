@@ -13,18 +13,21 @@ class ChallengesScreen extends StatelessWidget {
         title: 'Morning Workout',
         description: 'Complete a 30-minute morning exercise routine',
         difficulty: ChallengeDifficulty.easy,
+        points: 10
       ),
       Challenge(
         id: '2',
         title: 'Cook a New Recipe',
         description: 'Try cooking a dish you\'ve never made before',
         difficulty: ChallengeDifficulty.medium,
+        points: 20
       ),
       Challenge(
         id: '3',
         title: 'Learn a Dance Routine',
         description: 'Master a full choreographed dance routine',
         difficulty: ChallengeDifficulty.hard,
+        points: 30
       ),
     ];
 

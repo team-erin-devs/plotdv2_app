@@ -4,6 +4,7 @@ class Challenge {
   final String id;
   final String title;
   final String description;
+  final int points;
   final ChallengeDifficulty difficulty;
 
   Challenge({
@@ -11,5 +12,6 @@ class Challenge {
     required this.title,
     required this.description,
     required this.difficulty,
+    required this.points,
   });
 }
