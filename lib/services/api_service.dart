@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/challenge.dart';
+import '../models/leaderboard_entry.dart';
 
 class ApiService {
   // Change this to your backend URL
@@ -35,11 +36,10 @@ class ApiService {
           print('🔵 Parsing challenge: ${data['title']}');
           return Challenge(
             id: data['id'].toString(),
-            title: data['title'],
-            description: data['description'],
-            difficulty: ChallengeDifficulty
-                .easy, // Default difficulty since API doesn't provide it
-            points: data['points'],
+            title: data['title'] ?? '',
+            description: data['description'] ?? '',
+            difficulty: ChallengeDifficulty.easy, // Default difficulty
+            points: data['points'] ?? 0,
           );
         }).toList();
       } else {
@@ -49,6 +49,26 @@ class ApiService {
       print('🔴 ERROR in fetchChallenge: $e');
       print('🔴 Stack trace: $stackTrace');
       rethrow;
+    }
+  }
+
+  /// Fetch leaderboard from API
+  static Future<List<LeaderboardEntry>> fetchLeaderboard({
+    int limit = 10,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/leaderboard/?limit=$limit'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => LeaderboardEntry.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to load leaderboard: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching leaderboard: $e');
     }
   }
 
