@@ -1,26 +1,22 @@
 class LeaderboardEntry {
-  final String id;
   final String username;
-  final int score;
-  final String? avatarUrl; // Optional avatar
+  final int totalPoints;
+  final String university;
   final int rank;
 
   LeaderboardEntry({
-    required this.id,
     required this.username,
-    required this.score,
-    this.avatarUrl,
+    required this.totalPoints,
+    required this.university,
     required this.rank,
   });
 
-  // Factory constructor to create from JSON (for API calls later)
   factory LeaderboardEntry.fromJson(Map<String, dynamic> json) {
     return LeaderboardEntry(
-      id: json['id'].toString(),
-      username: json['username'],
-      score: json['score'],
-      avatarUrl: json['avatar_url'],
-      rank: json['rank'],
+      username: json['username'] ?? '',
+      totalPoints: json['total_points'] ?? 0,
+      university: json['university'] ?? '',
+      rank: json['rank'] ?? 0,
     );
   }
 }

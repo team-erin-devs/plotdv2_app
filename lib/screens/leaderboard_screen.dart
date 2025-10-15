@@ -26,7 +26,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -47,13 +46,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               const SizedBox(height: 8),
               const Text(
                 'Top performers this week',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.white70, fontSize: 14),
               ),
               const SizedBox(height: 24),
-              
+
               // Leaderboard List with FutureBuilder
               Expanded(
                 child: FutureBuilder<List<LeaderboardEntry>>(
@@ -62,12 +58,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     // Loading state
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                        ),
+                        child: CircularProgressIndicator(color: Colors.white),
                       );
                     }
-                    
+
                     // Error state
                     if (snapshot.hasError) {
                       return Center(
@@ -105,22 +99,19 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         ),
                       );
                     }
-                    
+
                     // Success state
                     final leaderboard = snapshot.data ?? [];
-                    
+
                     if (leaderboard.isEmpty) {
                       return const Center(
                         child: Text(
                           'No leaderboard data available',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 16,
-                          ),
+                          style: TextStyle(color: Colors.white70, fontSize: 16),
                         ),
                       );
                     }
-                    
+
                     return RefreshIndicator(
                       onRefresh: () async {
                         _refreshLeaderboard();
@@ -149,10 +140,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 class LeaderboardCard extends StatelessWidget {
   final LeaderboardEntry entry;
 
-  const LeaderboardCard({
-    super.key,
-    required this.entry,
-  });
+  const LeaderboardCard({super.key, required this.entry});
 
   Color _getRankColor(int rank) {
     switch (rank) {
@@ -169,11 +157,7 @@ class LeaderboardCard extends StatelessWidget {
 
   Widget _getRankIcon(int rank) {
     if (rank <= 3) {
-      return Icon(
-        Icons.emoji_events,
-        color: _getRankColor(rank),
-        size: 28,
-      );
+      return Icon(Icons.emoji_events, color: _getRankColor(rank), size: 28);
     }
     return Text(
       '#${rank}',
@@ -194,20 +178,19 @@ class LeaderboardCard extends StatelessWidget {
         color: Colors.grey.shade900,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: entry.rank <= 3 ? _getRankColor(entry.rank) : Colors.grey.shade800,
+          color: entry.rank <= 3
+              ? _getRankColor(entry.rank)
+              : Colors.grey.shade800,
           width: entry.rank <= 3 ? 2 : 1,
         ),
       ),
       child: Row(
         children: [
           // Rank indicator
-          SizedBox(
-            width: 50,
-            child: Center(child: _getRankIcon(entry.rank)),
-          ),
-          
+          SizedBox(width: 50, child: Center(child: _getRankIcon(entry.rank))),
+
           const SizedBox(width: 12),
-          
+
           // Avatar (circular placeholder)
           CircleAvatar(
             radius: 22,
@@ -221,9 +204,9 @@ class LeaderboardCard extends StatelessWidget {
               ),
             ),
           ),
-          
+
           const SizedBox(width: 16),
-          
+
           // Username
           Expanded(
             child: Text(
@@ -235,7 +218,7 @@ class LeaderboardCard extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Score
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -244,7 +227,7 @@ class LeaderboardCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              '${entry.score} pts',
+              '${entry.totalPoints} pts',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 14,

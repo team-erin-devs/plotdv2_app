@@ -61,14 +61,25 @@ class ApiService {
         Uri.parse('$baseUrl/api/leaderboard/?limit=$limit'),
       );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => LeaderboardEntry.fromJson(json)).toList();
-      } else {
+      print('🔵 Leaderboard response status: ${response.statusCode}');
+      print('🔵 Leaderboard response body: ${response.body}');
+
+      if (response.statusCode != 200) {
         throw Exception('Failed to load leaderboard: ${response.statusCode}');
       }
-    } catch (e) {
-      throw Exception('Error fetching leaderboard: $e');
+
+      final List<dynamic> data = json.decode(response.body);
+
+      // Optional: log each entry to see if keys match
+      for (var entry in data) {
+        print('🔵 Leaderboard entry: $entry');
+      }
+
+      return data.map((json) => LeaderboardEntry.fromJson(json)).toList();
+    } catch (e, stack) {
+      print('🔴 ERROR in fetchLeaderboard: $e');
+      print('🔴 Stack trace: $stack');
+      rethrow; // Pass the error to FutureBuilder
     }
   }
 
