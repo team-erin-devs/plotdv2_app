@@ -1,61 +1,121 @@
 import 'package:flutter/material.dart';
 import 'package:team_erin_app/widgets/challenge_card.dart';
 import '../models/challenge.dart';
+import '../services/api_service.dart';
 
-class ChallengesScreen extends StatelessWidget {
+class ChallengesScreen extends StatefulWidget {
   const ChallengesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final List<Challenge> challenges = [
-      Challenge(
-        id: '1',
-        title: 'Morning Workout',
-        description: 'Complete a 30-minute morning exercise routine',
-        difficulty: ChallengeDifficulty.easy,
-        points: 10
-      ),
-      Challenge(
-        id: '2',
-        title: 'Cook a New Recipe',
-        description: 'Try cooking a dish you\'ve never made before',
-        difficulty: ChallengeDifficulty.medium,
-        points: 20
-      ),
-      Challenge(
-        id: '3',
-        title: 'Learn a Dance Routine',
-        description: 'Master a full choreographed dance routine',
-        difficulty: ChallengeDifficulty.hard,
-        points: 30
-      ),
-    ];
+  State<ChallengesScreen> createState() => _ChallengesScreenState();
+}
 
+class _ChallengesScreenState extends State<ChallengesScreen> {
+  late Future<List<Challenge>> _challengesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadChallenges();
+  }
+
+  void _loadChallenges() {
+    setState(() {
+      _challengesFuture = ApiService.fetchChallenge();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // Minimal dark background
+      backgroundColor: Colors.black,
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  "Today's Challenges",
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                  ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              const Text(
+                "This Week's Challenges",
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
                 ),
-                const SizedBox(height: 20),
-                // Tasks
-                for (var challenge in challenges) ...[
-                  ChallengeCard(challenge: challenge),
-                  const SizedBox(height: 12),
-                ],
-              ],
-            ),
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: FutureBuilder<List<Challenge>>(
+                  future: _challengesFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: Colors.white70),
+                      );
+                    } else if (snapshot.hasError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: Colors.red,
+                              size: 60,
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Failed to load challenges',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '${snapshot.error}',
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 12,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _loadChallenges,
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'No challenges for this week',
+                          style: TextStyle(color: Colors.white70, fontSize: 16),
+                        ),
+                      );
+                    }
+
+                    final challenges = snapshot.data!;
+                    return RefreshIndicator(
+                      onRefresh: () async {
+                        _loadChallenges();
+                        await _challengesFuture;
+                      },
+                      child: ListView.separated(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        itemCount: challenges.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          return ChallengeCard(challenge: challenges[index]);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ),
