@@ -2,30 +2,25 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/challenge.dart';
 import '../models/leaderboard_entry.dart';
+import 'authenticated_api_service.dart';
 
 class ApiService {
-  // Change this to your backend URL
-  // For web/Chrome: use localhost
-  // For Android emulator: use 10.0.2.2
-  // For iOS simulator: use localhost
-  static const String baseUrl = 'http://localhost:8000';
-
-  /// Fetch today's active challenges (filtered by Django backend)
+  /// Fetch today's active challenges (authenticated)
   static Future<List<Challenge>> fetchChallenge() async {
     try {
-      print('🔵 Attempting to fetch from: $baseUrl/api/challenges/');
+      print('🔵 Attempting to fetch challenges with auth...');
 
-      final response = await http.get(Uri.parse('$baseUrl/api/challenges/'));
+      final response = await AuthenticatedApiService.authenticatedGet(
+        '/api/challenges/',
+      );
 
       print('🔵 Response status: ${response.statusCode}');
       print('🔵 Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
-
         print('🔵 Parsed JSON: $jsonData');
 
-        // Handle paginated response from Django REST Framework
         List challengeData = jsonData is Map && jsonData.containsKey('results')
             ? jsonData['results']
             : jsonData;
@@ -38,7 +33,7 @@ class ApiService {
             id: data['id'].toString(),
             title: data['title'] ?? '',
             description: data['description'] ?? '',
-            difficulty: ChallengeDifficulty.easy, // Default difficulty
+            difficulty: ChallengeDifficulty.easy,
             points: data['points'] ?? 0,
           );
         }).toList();
@@ -52,13 +47,13 @@ class ApiService {
     }
   }
 
-  /// Fetch leaderboard from API
+  /// Fetch leaderboard (authenticated)
   static Future<List<LeaderboardEntry>> fetchLeaderboard({
     int limit = 10,
   }) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/leaderboard/?limit=$limit'),
+      final response = await AuthenticatedApiService.authenticatedGet(
+        '/api/leaderboard/?limit=$limit',
       );
 
       print('🔵 Leaderboard response status: ${response.statusCode}');
@@ -70,7 +65,6 @@ class ApiService {
 
       final List<dynamic> data = json.decode(response.body);
 
-      // Optional: log each entry to see if keys match
       for (var entry in data) {
         print('🔵 Leaderboard entry: $entry');
       }
@@ -79,17 +73,52 @@ class ApiService {
     } catch (e, stack) {
       print('🔴 ERROR in fetchLeaderboard: $e');
       print('🔴 Stack trace: $stack');
-      rethrow; // Pass the error to FutureBuilder
+      rethrow;
     }
   }
 
-  /// Health check endpoint
+  /// Submit a challenge completion (authenticated)
+  static Future<Map<String, dynamic>> submitChallenge({
+    required String challengeId,
+    required String proofImageUrl,
+  }) async {
+    try {
+      final response = await AuthenticatedApiService.authenticatedPost(
+        '/api/challenges/$challengeId/submit/',
+        {'proof_image_url': proofImageUrl},
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to submit challenge: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('🔴 ERROR in submitChallenge: $e');
+      rethrow;
+    }
+  }
+
+  /// Health check endpoint (no auth needed)
   static Future<bool> checkHealth() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/api/health/'));
+      final response = await http.get(
+        Uri.parse('${AuthenticatedApiService.baseUrl}/api/health/'),
+      );
       return response.statusCode == 200;
     } catch (e) {
       return false;
     }
+  }
+
+  /// Check if user is authenticated
+  static Future<bool> isAuthenticated() async {
+    final token = await AuthenticatedApiService.getAccessToken();
+    return token != null && token.isNotEmpty;
+  }
+
+  /// Logout user
+  static Future<void> logout() async {
+    await AuthenticatedApiService.clearTokens();
   }
 }

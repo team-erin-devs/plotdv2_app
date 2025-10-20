@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import '../models/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 class AuthService {
   static const String baseUrl = 'http://localhost:8000/api/auth';
 
@@ -40,10 +39,7 @@ class AuthService {
     final response = await http.post(
       Uri.parse('$baseUrl/login/'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'username': username,
-        'password': password,
-      }),
+      body: jsonEncode({'username': username, 'password': password}),
     );
 
     if (response.statusCode == 200) {
