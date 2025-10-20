@@ -23,18 +23,17 @@ class _LoginScreenState extends State<LoginScreen> {
           username: _usernameController.text,
           password: _passwordController.text,
         );
-        
 
         //navigate after successful login
-        if(mounted){
-            Navigator.pushReplacementNamed(context, '/challenges');
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
         }
 
         print(response);
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       } finally {
         setState(() => _isLoading = false);
       }

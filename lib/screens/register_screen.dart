@@ -32,13 +32,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         // TODO: Store tokens and navigate to home screen
         if (mounted) {
-            Navigator.pushReplacementNamed(context, '/challenges');
+          Navigator.pushReplacementNamed(context, '/home');
         }
         print(response);
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       } finally {
         setState(() => _isLoading = false);
       }
