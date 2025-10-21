@@ -170,4 +170,29 @@ class AuthenticatedApiService {
 
     return response;
   }
+
+  /// Get current user's stats
+  static Future<Map<String, dynamic>> getUserStats() async {
+    final response = await authenticatedGet('/api/user/stats/');
+    
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load user stats: ${response.statusCode}');
+    }
+  }
+
+  /// Get current user's information
+  static Future<Map<String, dynamic>> getCurrentUser() async {
+    // First get the user ID from the token or make a request
+    // For now, we'll decode it from the user info in local storage
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString('user_info');
+    
+    if (userJson != null) {
+      return jsonDecode(userJson);
+    }
+    
+    throw Exception('User information not found. Please log in again.');
+  }
 }

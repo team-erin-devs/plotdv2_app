@@ -26,7 +26,21 @@ class AuthService {
     );
 
     if (response.statusCode == 201) {
-      return jsonDecode(response.body);
+      final data = jsonDecode(response.body);
+      
+      // Save tokens and user info after registration
+      final tokens = data['tokens'];
+      final user = data['user'];
+      if (tokens != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('access_token', tokens['access'] ?? '');
+        await prefs.setString('refresh_token', tokens['refresh'] ?? '');
+        if (user != null) {
+          await prefs.setString('user_info', jsonEncode(user));
+        }
+      }
+      
+      return data;
     } else {
       throw Exception('Registration failed: ${response.body}');
     }
@@ -47,15 +61,27 @@ class AuthService {
 
       //save the tokens locally on device - so that the user doesn't need to login everytime they reopen the app
       final tokens = data['tokens'];
+      final user = data['user'];
       if (tokens != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('access_token', tokens['access'] ?? '');
         await prefs.setString('refresh_token', tokens['refresh'] ?? '');
+        // Save user info for profile screen
+        if (user != null) {
+          await prefs.setString('user_info', jsonEncode(user));
+        }
       }
 
       return data;
     } else {
       throw Exception('Login failed: ${response.body}');
     }
+  }
+
+  static Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('access_token');
+    await prefs.remove('refresh_token');
+    await prefs.remove('user_info');
   }
 }

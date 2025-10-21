@@ -4,6 +4,7 @@ import 'package:team_erin_app/screens/challenges_screen.dart';
 import 'package:team_erin_app/screens/leaderboard_screen.dart';
 import 'package:team_erin_app/screens/login_screen.dart';
 import 'package:team_erin_app/screens/register_screen.dart';
+import 'package:team_erin_app/screens/profile_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -57,7 +58,7 @@ class _MainNavigationState extends State<MainNavigation> {
   final List<Widget> _pages = [
     const ChallengesScreen(),
     const LeaderboardScreen(),
-    const Placeholder(), // TODO: Profile screen
+    const ProfileScreen(),
   ];
 
   void _onItemTapped(int index) {

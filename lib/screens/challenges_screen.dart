@@ -12,6 +12,8 @@ class ChallengesScreen extends StatefulWidget {
 
 class _ChallengesScreenState extends State<ChallengesScreen> {
   late Future<List<Challenge>> _challengesFuture;
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
 
   @override
   void initState() {
@@ -19,10 +21,34 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
     _loadChallenges();
   }
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   void _loadChallenges() {
     setState(() {
       _challengesFuture = ApiService.fetchChallenge();
     });
+  }
+
+  void _previousChallenge(int totalChallenges) {
+    if (_currentPage > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _nextChallenge(int totalChallenges) {
+    if (_currentPage < totalChallenges - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   @override
@@ -97,20 +123,124 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
                     }
 
                     final challenges = snapshot.data!;
-                    return RefreshIndicator(
-                      onRefresh: () async {
-                        _loadChallenges();
-                        await _challengesFuture;
-                      },
-                      child: ListView.separated(
-                        padding: const EdgeInsets.only(bottom: 20),
-                        itemCount: challenges.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          return ChallengeCard(challenge: challenges[index]);
-                        },
-                      ),
+                    
+                    return Column(
+                      children: [
+                        // Page Indicator
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            challenges.length,
+                            (index) => Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: _currentPage == index
+                                    ? Colors.white
+                                    : Colors.white38,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Challenge Carousel
+                        Expanded(
+                          child: Stack(
+                            children: [
+                              // PageView with challenges
+                              PageView.builder(
+                                controller: _pageController,
+                                onPageChanged: (index) {
+                                  setState(() {
+                                    _currentPage = index;
+                                  });
+                                },
+                                itemCount: challenges.length,
+                                itemBuilder: (context, index) {
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                                    child: Center(
+                                      child: ChallengeCard(challenge: challenges[index]),
+                                    ),
+                                  );
+                                },
+                              ),
+                              
+                              // Left Arrow
+                              if (_currentPage > 0)
+                                Positioned(
+                                  left: 0,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Center(
+                                    child: IconButton(
+                                      onPressed: () => _previousChallenge(challenges.length),
+                                      icon: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.1),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: Colors.white.withOpacity(0.3),
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.arrow_back_ios_new,
+                                          color: Colors.white,
+                                          size: 24,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              
+                              // Right Arrow
+                              if (_currentPage < challenges.length - 1)
+                                Positioned(
+                                  right: 0,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Center(
+                                    child: IconButton(
+                                      onPressed: () => _nextChallenge(challenges.length),
+                                      icon: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.1),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: Colors.white.withOpacity(0.3),
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.arrow_forward_ios,
+                                          color: Colors.white,
+                                          size: 24,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Challenge counter
+                        Text(
+                          '${_currentPage + 1} of ${challenges.length}',
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),
