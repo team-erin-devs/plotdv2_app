@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import '../models/challenge.dart';
 import '../models/leaderboard_entry.dart';
 import 'authenticated_api_service.dart';
@@ -77,6 +79,80 @@ class ApiService {
     }
   }
 
+  /// Upload a media file to the server
+  static Future<String> uploadMedia(XFile mediaFile) async {
+    try {
+      print('🔵 Uploading media: ${mediaFile.path}');
+      
+      // Get the access token
+      final token = await AuthenticatedApiService.getAccessToken();
+      if (token == null) {
+        throw Exception('No access token available');
+      }
+
+      // Create multipart request
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${AuthenticatedApiService.baseUrl}/api/upload/'),
+      );
+
+      // Add authorization header
+      request.headers['Authorization'] = 'Bearer $token';
+
+      // Add the media file
+      final file = await http.MultipartFile.fromPath(
+        'media',
+        mediaFile.path,
+        filename: mediaFile.name,
+      );
+      request.files.add(file);
+
+      // Send the request
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      print('🔵 Upload response status: ${response.statusCode}');
+      print('🔵 Upload response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = json.decode(response.body);
+        final mediaUrl = data['media_url'] ?? data['url'] ?? data['image_url'];
+        if (mediaUrl != null) {
+          print('🔵 Media uploaded successfully: $mediaUrl');
+          return mediaUrl;
+        } else {
+          throw Exception('No media URL returned from server');
+        }
+      } else {
+        throw Exception('Failed to upload media: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('🔴 ERROR in uploadMedia: $e');
+      rethrow;
+    }
+  }
+
+  /// Upload multiple media files and return their URLs
+  static Future<List<String>> uploadMediaFiles(List<XFile> mediaFiles) async {
+    try {
+      print('🔵 Uploading ${mediaFiles.length} media files');
+      
+      final List<String> mediaUrls = [];
+      
+      for (int i = 0; i < mediaFiles.length; i++) {
+        print('🔵 Uploading media ${i + 1}/${mediaFiles.length}');
+        final mediaUrl = await uploadMedia(mediaFiles[i]);
+        mediaUrls.add(mediaUrl);
+      }
+      
+      print('🔵 All media files uploaded successfully: $mediaUrls');
+      return mediaUrls;
+    } catch (e) {
+      print('🔴 ERROR in uploadMediaFiles: $e');
+      rethrow;
+    }
+  }
+
   /// Submit a challenge completion (authenticated)
   static Future<Map<String, dynamic>> submitChallenge({
     required String challengeId,
@@ -95,6 +171,31 @@ class ApiService {
       }
     } catch (e) {
       print('🔴 ERROR in submitChallenge: $e');
+      rethrow;
+    }
+  }
+
+  /// Submit a challenge completion with multiple media files
+  static Future<Map<String, dynamic>> submitChallengeWithMedia({
+    required String challengeId,
+    required List<XFile> mediaFiles,
+  }) async {
+    try {
+      print('🔵 Submitting challenge $challengeId with ${mediaFiles.length} media files');
+      
+      // Upload all media files first
+      final mediaUrls = await uploadMediaFiles(mediaFiles);
+      
+      // Submit challenge with the first media URL (or you can modify this to handle multiple URLs)
+      final result = await submitChallenge(
+        challengeId: challengeId,
+        proofImageUrl: mediaUrls.first,
+      );
+      
+      print('🔵 Challenge submitted successfully');
+      return result;
+    } catch (e) {
+      print('🔴 ERROR in submitChallengeWithMedia: $e');
       rethrow;
     }
   }
