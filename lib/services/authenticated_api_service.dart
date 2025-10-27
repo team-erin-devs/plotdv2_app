@@ -9,6 +9,8 @@ class AuthenticatedApiService {
   /// Get the stored access token
   static Future<String?> getAccessToken() async {
     final prefs = await SharedPreferences.getInstance();
+    prefs.reload();
+    print('Access Token Retrieved: ${prefs.getString('access_token')}');
     return prefs.getString('access_token');
   }
 

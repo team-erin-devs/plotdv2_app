@@ -18,6 +18,11 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
   bool _isSubmitting = false;
+  
+  // Authentication fields
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
 
   Future<void> _pickMedia() async {
     try {
@@ -197,15 +202,21 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      await ApiService.submitChallengeWithMedia(
-        challengeId: widget.challenge.id,
-        mediaFiles: _mediaFiles,
-      );
+      // Upload each media file as a separate proof
+      for (int i = 0; i < _mediaFiles.length; i++) {
+        await ApiService.uploadProof(
+          challengeId: widget.challenge.id,
+          file: _mediaFiles[i],
+          description: _descriptionController.text.isNotEmpty 
+              ? _descriptionController.text 
+              : null,
+        );
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Challenge submitted successfully!'),
+            content: Text('Challenge proof submitted successfully!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -217,7 +228,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to submit challenge: $e'),
+            content: Text('Failed to submit challenge proof: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -392,7 +403,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                             ),
                             SizedBox(width: 12),
                             Text(
-                              "SUBMITTING...",
+                              "UPLOADING PROOF...",
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -401,7 +412,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                           ],
                         )
                       : const Text(
-                          "SUBMIT CHALLENGE",
+                          "UPLOAD PROOF",
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

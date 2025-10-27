@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import '../models/challenge.dart';
@@ -7,6 +7,8 @@ import '../models/leaderboard_entry.dart';
 import 'authenticated_api_service.dart';
 
 class ApiService {
+  static final String baseUrl = AuthenticatedApiService.baseUrl;
+  
   /// Fetch today's active challenges (authenticated)
   static Future<List<Challenge>> fetchChallenge() async {
     try {
@@ -79,33 +81,53 @@ class ApiService {
     }
   }
 
-  /// Upload a media file to the server
-  static Future<String> uploadMedia(XFile mediaFile) async {
+  /// Upload a file as proof for a challenge
+  static Future<Map<String, dynamic>> uploadProof({
+    required String challengeId,
+    required XFile file,
+    String? description,
+  }) async {
     try {
-      print('🔵 Uploading media: ${mediaFile.path}');
+      print('🔵 Uploading proof for challenge: $challengeId');
+      print('🔵 File path: ${file.path}');
       
-      // Get the access token
+      // Check if user is authenticated
       final token = await AuthenticatedApiService.getAccessToken();
-      if (token == null) {
-        throw Exception('No access token available');
+      if (token == null || token.isEmpty) {
+        throw Exception('User not authenticated. Please log in first.');
       }
-
+      
       // Create multipart request
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('${AuthenticatedApiService.baseUrl}/api/upload/'),
+        Uri.parse('$baseUrl/api/challenges/$challengeId/upload/'),
       );
 
-      // Add authorization header
+      // Add Bearer token authentication
       request.headers['Authorization'] = 'Bearer $token';
 
-      // Add the media file
-      final file = await http.MultipartFile.fromPath(
-        'media',
-        mediaFile.path,
-        filename: mediaFile.name,
-      );
-      request.files.add(file);
+      // Add the file
+      final http.MultipartFile multipartFile;
+      if (kIsWeb) {
+        final bytes = await file.readAsBytes();
+        multipartFile = http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: file.name,
+        );
+      } else {
+        multipartFile = await http.MultipartFile.fromPath(
+          'file',
+          file.path,
+          filename: file.name,
+        );
+      }
+      request.files.add(multipartFile);
+
+      // Add description if provided
+      if (description != null && description.isNotEmpty) {
+        request.fields['description'] = description;
+      }
 
       // Send the request
       final streamedResponse = await request.send();
@@ -116,86 +138,41 @@ class ApiService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
-        final mediaUrl = data['media_url'] ?? data['url'] ?? data['image_url'];
-        if (mediaUrl != null) {
-          print('🔵 Media uploaded successfully: $mediaUrl');
-          return mediaUrl;
-        } else {
-          throw Exception('No media URL returned from server');
-        }
+        print('🔵 Proof uploaded successfully');
+        return data;
       } else {
-        throw Exception('Failed to upload media: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to upload proof: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      print('🔴 ERROR in uploadMedia: $e');
+      print('🔴 ERROR in uploadProof: $e');
       rethrow;
     }
   }
 
-  /// Upload multiple media files and return their URLs
-  static Future<List<String>> uploadMediaFiles(List<XFile> mediaFiles) async {
+  /// Get user's submitted proofs
+  static Future<List<Map<String, dynamic>>> getUserProofs() async {
     try {
-      print('🔵 Uploading ${mediaFiles.length} media files');
-      
-      final List<String> mediaUrls = [];
-      
-      for (int i = 0; i < mediaFiles.length; i++) {
-        print('🔵 Uploading media ${i + 1}/${mediaFiles.length}');
-        final mediaUrl = await uploadMedia(mediaFiles[i]);
-        mediaUrls.add(mediaUrl);
+      // Check if user is authenticated
+      final token = await AuthenticatedApiService.getAccessToken();
+      if (token == null || token.isEmpty) {
+        throw Exception('User not authenticated. Please log in first.');
       }
       
-      print('🔵 All media files uploaded successfully: $mediaUrls');
-      return mediaUrls;
-    } catch (e) {
-      print('🔴 ERROR in uploadMediaFiles: $e');
-      rethrow;
-    }
-  }
-
-  /// Submit a challenge completion (authenticated)
-  static Future<Map<String, dynamic>> submitChallenge({
-    required String challengeId,
-    required String proofImageUrl,
-  }) async {
-    try {
-      final response = await AuthenticatedApiService.authenticatedPost(
-        '/api/challenges/$challengeId/submit/',
-        {'proof_image_url': proofImageUrl},
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/proofs/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return json.decode(response.body);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.cast<Map<String, dynamic>>();
       } else {
-        throw Exception('Failed to submit challenge: ${response.statusCode}');
+        throw Exception('Failed to fetch proofs: ${response.statusCode}');
       }
     } catch (e) {
-      print('🔴 ERROR in submitChallenge: $e');
-      rethrow;
-    }
-  }
-
-  /// Submit a challenge completion with multiple media files
-  static Future<Map<String, dynamic>> submitChallengeWithMedia({
-    required String challengeId,
-    required List<XFile> mediaFiles,
-  }) async {
-    try {
-      print('🔵 Submitting challenge $challengeId with ${mediaFiles.length} media files');
-      
-      // Upload all media files first
-      final mediaUrls = await uploadMediaFiles(mediaFiles);
-      
-      // Submit challenge with the first media URL (or you can modify this to handle multiple URLs)
-      final result = await submitChallenge(
-        challengeId: challengeId,
-        proofImageUrl: mediaUrls.first,
-      );
-      
-      print('🔵 Challenge submitted successfully');
-      return result;
-    } catch (e) {
-      print('🔴 ERROR in submitChallengeWithMedia: $e');
+      print('🔴 ERROR in getUserProofs: $e');
       rethrow;
     }
   }
