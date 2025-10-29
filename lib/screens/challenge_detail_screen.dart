@@ -1,7 +1,8 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/challenge.dart';
+import '../services/upload_service.dart'; // make sure path matches your project
 
 class ChallengeDetailScreen extends StatefulWidget {
   final Challenge challenge;
@@ -13,21 +14,23 @@ class ChallengeDetailScreen extends StatefulWidget {
 }
 
 class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
-  final List<XFile> _images = [];
+  final List<_SelectedImage> _images = [];
   final ImagePicker _picker = ImagePicker();
+  bool _isUploading = false;
 
   Future<void> _pickImage() async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-      if (image != null) {
-        setState(() => _images.add(image));
+      final XFile? picked = await _picker.pickImage(
+        source: ImageSource.gallery,
+      );
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        setState(
+          () => _images.add(_SelectedImage(bytes: bytes, name: picked.name)),
+        );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
-      }
+      _showSnack('Error picking image: $e');
     }
   }
 
@@ -35,18 +38,49 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
     try {
       final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
       if (photo != null) {
-        setState(() => _images.add(photo));
+        final bytes = await photo.readAsBytes();
+        setState(
+          () => _images.add(_SelectedImage(bytes: bytes, name: photo.name)),
+        );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error taking photo: $e')));
-      }
+      _showSnack('Error taking photo: $e');
     }
   }
 
   void _removeImage(int index) => setState(() => _images.removeAt(index));
+
+  void _showSnack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.black87),
+    );
+  }
+
+  Future<void> _uploadImages() async {
+    if (_images.isEmpty) {
+      _showSnack("Please select at least one image before uploading.");
+      return;
+    }
+
+    setState(() => _isUploading = true);
+
+    try {
+      for (final img in _images) {
+        await UploadService.uploadProof(
+          bytes: img.bytes,
+          filename: img.name,
+          challengeId: widget.challenge.id,
+        );
+      }
+      _showSnack("Upload successful!");
+      setState(() => _images.clear());
+    } catch (e) {
+      _showSnack("Upload failed: $e");
+    } finally {
+      setState(() => _isUploading = false);
+    }
+  }
 
   Color _getDifficultyColor() {
     switch (widget.challenge.difficulty) {
@@ -140,62 +174,64 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Images
-            if (_images.isNotEmpty) ...[
-              Text(
-                "UPLOADED IMAGES",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: _getDifficultyColor(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                ),
-                itemCount: _images.length,
-                itemBuilder: (context, index) {
-                  return Stack(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: _getDifficultyColor(),
-                            width: 2,
+            // Image previews
+            if (_images.isNotEmpty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "SELECTED IMAGES",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: _getDifficultyColor(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
+                    itemCount: _images.length,
+                    itemBuilder: (context, index) {
+                      final img = _images[index];
+                      return Stack(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: _getDifficultyColor(),
+                                width: 2,
+                              ),
+                            ),
+                            child: Image.memory(img.bytes, fit: BoxFit.cover),
                           ),
-                        ),
-                        child: Image.file(
-                          File(_images[index].path),
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                        ),
-                      ),
-                      Positioned(
-                        top: 2,
-                        right: 2,
-                        child: Container(
-                          color: Colors.redAccent,
-                          child: IconButton(
-                            icon: const Icon(Icons.close, size: 16),
-                            color: Colors.black,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () => _removeImage(index),
+                          Positioned(
+                            top: 2,
+                            right: 2,
+                            child: Container(
+                              color: Colors.redAccent,
+                              child: IconButton(
+                                icon: const Icon(Icons.close, size: 16),
+                                color: Colors.black,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                onPressed: () => _removeImage(index),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ] else
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              )
+            else
               Center(
                 child: Column(
                   children: [
@@ -212,9 +248,52 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                   ],
                 ),
               ),
+
+            const SizedBox(height: 24),
+
+            // Upload button
+            Center(
+              child: ElevatedButton(
+                onPressed: _isUploading ? null : _uploadImages,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _getDifficultyColor(),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 40,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _isUploading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          color: Colors.black,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : const Text(
+                        "UPLOAD",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+/// Helper class to store image bytes + original filename
+class _SelectedImage {
+  final Uint8List bytes;
+  final String name;
+  _SelectedImage({required this.bytes, required this.name});
 }
