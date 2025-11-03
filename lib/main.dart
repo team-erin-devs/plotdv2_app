@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:team_erin_app/screens/home_screen.dart';
 import 'package:team_erin_app/screens/challenges_screen.dart';
 import 'package:team_erin_app/screens/leaderboard_screen.dart';
 import 'package:team_erin_app/screens/login_screen.dart';
@@ -56,9 +57,10 @@ class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-    const ChallengesScreen(),
-    const LeaderboardScreen(),
-    const ProfileScreen(),
+    const HomeScreen(),          // 0 = Home
+    const ChallengesScreen(),    // 1 = Missions
+    const LeaderboardScreen(),   // 2 = Ranking
+    const ProfileScreen(),       // 3 = Profile
   ];
 
   void _onItemTapped(int index) {
@@ -71,21 +73,105 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.black,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.grey,
+      bottomNavigationBar: _NeoBottomNavBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Challenges'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.leaderboard),
-            label: 'Leaderboard',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          _NeoNavItem(icon: Icons.home_rounded, label: 'Home'),
+          _NeoNavItem(icon: Icons.flag_circle_rounded, label: 'Missions'),
+          _NeoNavItem(icon: Icons.bar_chart_rounded, label: 'Ranking'),
+          _NeoNavItem(icon: Icons.person_rounded, label: 'Profile'),
         ],
       ),
     );
   }
 }
+
+class _NeoBottomNavBar extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+  final List<_NeoNavItem> items;
+
+  const _NeoBottomNavBar({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+    required this.items,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0B0B0B),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.4),
+              blurRadius: 12,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: List.generate(items.length, (i) {
+            final selected = i == currentIndex;
+            final color = selected ? Colors.white : const Color(0xFF8E8E93);
+
+            return Expanded(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => onTap(i),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(items[i].icon, size: 26, color: color),
+                      const SizedBox(height: 6),
+                      Text(
+                        items[i].label,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: color,
+                          letterSpacing: 0.1,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      AnimatedOpacity(
+                        opacity: selected ? 1 : 0,
+                        duration: const Duration(milliseconds: 180),
+                        child: Container(
+                          width: 18,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+}
+
+class _NeoNavItem {
+  final IconData icon;
+  final String label;
+  const _NeoNavItem({required this.icon, required this.label});
+}
+

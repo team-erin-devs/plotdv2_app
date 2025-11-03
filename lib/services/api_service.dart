@@ -27,13 +27,65 @@ class ApiService {
 
         print('🔵 Challenge data count: ${challengeData.length}');
 
+        ChallengeDifficulty _parseDifficulty(dynamic raw, int? points) {
+          // If backend provides a field, try direct parse first
+          if (raw != null) {
+            if (raw is Enum) {
+              final n = raw.name.toLowerCase();
+              if (n == 'easy') return ChallengeDifficulty.easy;
+              if (n == 'medium') return ChallengeDifficulty.medium;
+              if (n == 'hard') return ChallengeDifficulty.hard;
+            }
+            if (raw is String) {
+              final tail = raw.contains('.') ? raw.split('.').last : raw;
+              final n = tail.trim().toLowerCase();
+              if (n == 'easy') return ChallengeDifficulty.easy;
+              if (n == 'medium') return ChallengeDifficulty.medium;
+              if (n == 'hard') return ChallengeDifficulty.hard;
+              final asInt = int.tryParse(n);
+              if (asInt != null) {
+                if (asInt == 1) return ChallengeDifficulty.easy;
+                if (asInt == 2) return ChallengeDifficulty.medium;
+                if (asInt == 3) return ChallengeDifficulty.hard;
+              }
+            }
+            if (raw is int) {
+              if (raw == 1) return ChallengeDifficulty.easy;
+              if (raw == 2) return ChallengeDifficulty.medium;
+              if (raw == 3) return ChallengeDifficulty.hard;
+            }
+          }
+
+          // Fallback: derive from points if difficulty absent
+          if (points != null) {
+            if (points >= 20) return ChallengeDifficulty.hard;
+            if (points >= 10) return ChallengeDifficulty.medium;
+            return ChallengeDifficulty.easy;
+          }
+
+          // Final fallback
+          return ChallengeDifficulty.easy;
+        }
+
         return challengeData.map((data) {
+          // Be lenient with types
+          final int? points = () {
+            final v = data['points'];
+            if (v is int) return v;
+            return int.tryParse(v?.toString() ?? '');
+          }();
+
+          final dynamic rawDiff =
+          data['difficulty'] ?? data['difficulty_label'] ?? data['difficultyLabel'] ?? data['level'];
+
+          final diff = _parseDifficulty(rawDiff, points);
+
           print('🔵 Parsing challenge: ${data['title']}');
           return Challenge(
             id: data['id'].toString(),
-            title: data['title'] ?? '',
-            description: data['description'] ?? '',
-            difficulty: ChallengeDifficulty.easy,
+            title: (data['title'] ?? '').toString(),
+            description: (data['description'] ?? '').toString(),
+            difficulty: diff,
             points: data['points'] ?? 0,
           );
         }).toList();
