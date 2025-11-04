@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'authenticated_api_service.dart';
+import 'package:mime/mime.dart';
 
 class UploadService {
   static final Dio _dio = Dio();
@@ -44,10 +45,7 @@ class UploadService {
         presignedUrl,
         data: bytes,
         options: Options(
-          headers: {
-            'Content-Type': contentType,
-            'Content-Length': bytes.length.toString(),
-          },
+          headers: {'Content-Type': contentType},
           validateStatus: (_) => true,
         ),
       );
@@ -77,15 +75,17 @@ class UploadService {
     try {
       print("➡️ Registering upload with backend: $fileUrl");
       final response = await AuthenticatedApiService.authenticatedPost(
-        '/api/proofs/',
-        {'challenge': challengeId, 'image_url': fileUrl},
+        '/api/create/',
+        {'challenge_id': challengeId, 'file_url': fileUrl},
       );
 
       print("⬅️ Register response status: ${response.statusCode}");
       if (response.statusCode == 201) {
         print("✅ Upload registered successfully in backend");
       } else {
-        throw Exception('Failed to register upload: ${response.statusCode}');
+        throw Exception(
+          'Failed to register upload: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e, stack) {
       print("❌ Exception during registerUpload: $e");
@@ -94,15 +94,15 @@ class UploadService {
     }
   }
 
-  /// Full pipeline: presign → upload → register
   static Future<void> uploadProof({
     required Uint8List bytes,
     required String filename,
     required String challengeId,
-    String contentType = 'image/jpeg',
+    String? contentType, // make optional
   }) async {
     print("🔹 Starting upload pipeline for $filename");
     try {
+      // Step 1: Get presigned URL from Django
       final presignData = await getPresignedUrl(
         filename: filename,
         challengeId: challengeId,
@@ -110,11 +110,21 @@ class UploadService {
 
       final presignedUrl = presignData['presigned_url'] as String;
       final fileUrl = presignData['file_url'] as String;
+      final backendContentType = presignData['content_type'] as String?;
+      final uploadContentType =
+          backendContentType ??
+          contentType ??
+          lookupMimeType(filename) ??
+          'application/octet-stream';
+
+      print("🔹 Uploading file with headers:");
+      print("Content-Type: $uploadContentType");
+      print("Bytes length: ${bytes.length}");
 
       await uploadToBackblaze(
         presignedUrl: presignedUrl,
         bytes: bytes,
-        contentType: contentType,
+        contentType: uploadContentType,
       );
 
       await registerUpload(fileUrl: fileUrl, challengeId: challengeId);
