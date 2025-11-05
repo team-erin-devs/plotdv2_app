@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/challenge.dart';
 import '../models/leaderboard_entry.dart';
+import '../models/user.dart';
 import 'authenticated_api_service.dart';
 
 class ApiService {
@@ -95,6 +96,26 @@ class ApiService {
     } catch (e, stackTrace) {
       print('🔴 ERROR in fetchChallenge: $e');
       print('🔴 Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  // Fetch user profile
+  static Future<User> fetchUserProfile() async {
+    try {
+      print('🔵 Attempting to fetch user profile with auth...');
+      final response = await AuthenticatedApiService.authenticatedGet(
+        '/api/user/profile/',
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        return User.fromJson(data);
+      } else {
+        throw Exception('Failed to load user profile: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('🔴 ERROR in fetchUserProfile: $e');
       rethrow;
     }
   }

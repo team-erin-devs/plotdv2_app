@@ -4,6 +4,7 @@ class User {
   final String email;
   final String? university;
   final String? studentId;
+  final DateTime createdAt;
 
   User({
     required this.id,
@@ -11,6 +12,7 @@ class User {
     required this.email,
     this.university,
     this.studentId,
+    required this.createdAt,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class User {
       email: json['email'],
       university: json['university'],
       studentId: json['student_id'],
+      createdAt: DateTime.parse(json['created_at']),
     );
   }
 }
