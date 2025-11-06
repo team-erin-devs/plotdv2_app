@@ -1,28 +1,35 @@
 class User {
-  final String id;
+  final int id;
   final String username;
   final String email;
-  final String? university;
-  final String? studentId;
-  final DateTime createdAt;
+  final String? firstName;
+  final String? lastName;
 
   User({
     required this.id,
     required this.username,
     required this.email,
-    this.university,
-    this.studentId,
-    required this.createdAt,
+    this.firstName,
+    this.lastName,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'],
-      username: json['username'],
-      email: json['email'],
-      university: json['university'],
-      studentId: json['student_id'],
-      createdAt: DateTime.parse(json['created_at']),
+      id: json['id'] as int,
+      username: json['username'] as String,
+      email: json['email'] as String,
+      firstName: json['first_name'] as String?,
+      lastName: json['last_name'] as String?,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'username': username,
+      'email': email,
+      'first_name': firstName,
+      'last_name': lastName,
+    };
   }
 }

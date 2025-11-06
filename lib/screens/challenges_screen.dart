@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/challenge.dart';
-import '../models/user.dart';
+import '../models/user_profile.dart';
 import '../services/api_service.dart';
 import '../widgets/mission_card.dart';
 
@@ -13,7 +13,7 @@ class ChallengesScreen extends StatefulWidget {
 
 class _ChallengesScreenState extends State<ChallengesScreen> {
   late Future<List<Challenge>> _challengesFuture;
-  late Future<User> _userFuture;
+  late Future<UserProfile> _userFuture;
 
   @override
   void initState() {
@@ -27,7 +27,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        child: FutureBuilder<User>(
+        child: FutureBuilder<UserProfile>(
           future: _userFuture,
           builder: (context, userSnap) {
             if (userSnap.connectionState == ConnectionState.waiting) {
@@ -42,7 +42,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
               );
             }
 
-            final user = userSnap.data!;
+            final userProfile = userSnap.data!;
 
             return FutureBuilder<List<Challenge>>(
               future: _challengesFuture,
@@ -74,7 +74,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
                     children: [
                       // 👤 Username header
                       Text(
-                        'Welcome, ${user.username}',
+                        'Welcome, ${userProfile.user.username}',
                         style: const TextStyle(
                           fontFamily: 'Urbanist',
                           fontWeight: FontWeight.w700,

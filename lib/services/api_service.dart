@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:team_erin_app/models/user_profile.dart';
 import '../models/challenge.dart';
 import '../models/leaderboard_entry.dart';
 import '../models/user.dart';
@@ -101,24 +102,36 @@ class ApiService {
   }
 
   // Fetch user profile
-  static Future<User> fetchUserProfile() async {
-    try {
-      print('🔵 Attempting to fetch user profile with auth...');
-      final response = await AuthenticatedApiService.authenticatedGet(
-        '/api/user/profile/',
-      );
+  static Future<UserProfile> fetchUserProfile() async {
+  try {
+    print('🔵 Attempting to fetch user profile with auth...');
+    
+    // Add these debug lines:
+    final token = await AuthenticatedApiService.getAccessToken();
+    final headers = await AuthenticatedApiService.getAuthHeaders();
+    print('🔑 Token exists: ${token != null}');
+    print('🔑 Headers: $headers');
+    
+    final response = await AuthenticatedApiService.authenticatedGet(
+      '/api/user/profile/',
+    );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        return User.fromJson(data);
-      } else {
-        throw Exception('Failed to load user profile: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('🔴 ERROR in fetchUserProfile: $e');
-      rethrow;
+    print('🔵 Profile response status: ${response.statusCode}');
+    print('🔵 Profile response headers: ${response.headers}');
+    print('🔵 Profile response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      print('🔵 Parsed JSON data: $data');
+      return UserProfile.fromJson(data);
+    } else {
+      throw Exception('Failed to load user profile: ${response.statusCode}');
     }
+  } catch (e) {
+    print('🔴 ERROR in fetchUserProfile: $e');
+    rethrow;
   }
+}
 
   /// Fetch leaderboard (authenticated)
   static Future<List<LeaderboardEntry>> fetchLeaderboard({

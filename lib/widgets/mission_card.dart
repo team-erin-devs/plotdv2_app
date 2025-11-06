@@ -142,6 +142,7 @@ class _MissionCard extends StatelessWidget {
           padding: pad,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Title
               Text(
@@ -161,8 +162,8 @@ class _MissionCard extends StatelessWidget {
                 color: accent,
                 isMain: isMain,
               ),
-              const Spacer(),
-
+              
+              SizedBox(height: isMain ? 120 : 100),
               // CTA
               _CTA(isMain: isMain),
             ],
