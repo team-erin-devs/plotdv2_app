@@ -1,95 +1,46 @@
 import 'package:flutter/material.dart';
 import '../models/challenge.dart';
-import '../services/api_service.dart';
 
-class MissionCard extends StatefulWidget {
-  const MissionCard({super.key, 
-  required String title, 
-  required ChallengeDifficulty difficulty, 
-  required List<Color> gradient, 
-  required int points, 
-  /*required timeRemaining*/});
+class MissionCard extends StatelessWidget {
+  final String title;
+  final ChallengeDifficulty difficulty;
+  final List<Color> gradient;
+  final int points;
 
-  @override
-  State<MissionCard> createState() => _MissionCardState();
-}
+  const MissionCard({
+    super.key,
+    required this.title,
+    required this.difficulty,
+    required this.gradient,
+    required this.points,
+  });
 
-class _MissionCardState extends State<MissionCard> {
-  late Future<List<Challenge>> _future;
-
-  final List<List<Color>> _gradients = const [
-    [Color(0xFFA621ED), Color(0xFF5E1387)], // purple
-    [Color(0xFFED2190), Color(0xFF871352)], // pink
-    [Color(0xFF23B2CA), Color(0xFF126C87)], // cyan
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _future = ApiService.fetchChallenge();
-  }
-
-  String _difficultyLabel(dynamic difficulty) {
-    if (difficulty == null) return 'N/A';
-    if (difficulty is String) {
-      final val = difficulty.split('.').last;
-      return val[0].toUpperCase() + val.substring(1).toLowerCase();
+  String _difficultyLabel(ChallengeDifficulty difficulty) {
+    switch (difficulty) {
+      case ChallengeDifficulty.easy:
+        return 'easy';
+      case ChallengeDifficulty.medium:
+        return 'medium';
+      case ChallengeDifficulty.hard:
+        return 'hard';
+      default:
+        return 'N/A';
     }
-    if (difficulty is int) {
-      switch (difficulty) {
-        case 1:
-          return 'Easy';
-        case 2:
-          return 'Medium';
-        case 3:
-          return 'Hard';
-      }
-    }
-    return difficulty.toString();
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Challenge>>(
-      future: _future,
-      builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    final accent = gradient.first;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMain = screenWidth > 400;
 
-        if (snap.hasError) {
-          return Center(
-            child: Text(
-              'Failed to load data',
-              style: TextStyle(color: Colors.red.shade300),
-            ),
-          );
-        }
-
-        final items = snap.data ?? [];
-        if (items.isEmpty) {
-          return const Text('No challenges available');
-        }
-
-        // Use first challenge as example
-        final challenge = items.first;
-        final title = challenge.title;
-        final difficulty = _difficultyLabel(challenge.difficulty);
-        final grad = _gradients.first;
-        final accent = grad.first;
-
-        // Responsiveness
-        final screenWidth = MediaQuery.of(context).size.width;
-        final isMain = screenWidth > 400; // larger layout for tablets/desktops
-
-        return _MissionCard(
-          title: title,
-          difficulty: difficulty,
-          gradient: grad,
-          accent: accent,
-          isMain: isMain,
-        );
-      },
+    return _MissionCard(
+      title: title,
+      difficulty: _difficultyLabel(difficulty),
+      gradient: gradient,
+      accent: accent,
+      isMain: isMain,
+      points: points,
     );
   }
 }
@@ -100,6 +51,7 @@ class _MissionCard extends StatelessWidget {
   final List<Color> gradient;
   final Color accent;
   final bool isMain;
+  final int points;
 
   const _MissionCard({
     required this.title,
@@ -107,6 +59,7 @@ class _MissionCard extends StatelessWidget {
     required this.gradient,
     required this.accent,
     required this.isMain,
+    required this.points,
   });
 
   @override
@@ -156,16 +109,66 @@ class _MissionCard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // Difficulty pill
-              _DifficultyPill(
-                label: difficulty,
-                color: accent,
-                isMain: isMain,
+              // Row with difficulty/points column and time remaining column
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Left column: Difficulty pill and points
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _DifficultyPill(
+                        label: difficulty,
+                        color: accent,
+                        isMain: isMain,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '$points points',
+                        style: TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w100,
+                          fontSize: isMain ? 16 : 14,
+                          color: Colors.white.withOpacity(0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const Spacer(),
+                  
+                  // Right column: Time remaining
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'time remaining',
+                        style: TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w500,
+                          fontSize: isMain ? 14 : 12,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '0d 22h 33m 45s',
+                        style: TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w700,
+                          fontSize: isMain ? 24 : 20,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              
-              SizedBox(height: isMain ? 120 : 100),
+
+              SizedBox(height: isMain ? 24 : 20),
+
               // CTA
-              _CTA(isMain: isMain),
+              _CTA(isMain: isMain, accentColor: accent),
             ],
           ),
         ),
@@ -189,27 +192,46 @@ class _DifficultyPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final h = isMain ? 32.0 : 26.0;
     final r = isMain ? 16.0 : 13.0;
+    final dotSize = isMain ? 8.0 : 6.5;
 
     return Container(
       height: h,
-      padding: EdgeInsets.symmetric(horizontal: isMain ? 16 : 14),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMain ? 16 : 14,
+        vertical: isMain ? 6 : 5,
+      ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(r),
         border: Border.all(
+          width: isMain ? 1.2 : 1.0,
           color: Colors.white.withOpacity(0.5),
         ),
         color: Colors.white.withOpacity(0.08),
       ),
-      child: Center(
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Urbanist',
-            fontWeight: FontWeight.w600,
-            fontSize: isMain ? 16 : 14,
-            color: Colors.white,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: dotSize,
+            height: dotSize,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
           ),
-        ),
+          SizedBox(width: isMain ? 10 : 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Urbanist',
+              fontWeight: FontWeight.w600,
+              fontSize: isMain ? 16 : 14,
+              height: 1.0,
+              letterSpacing: isMain ? -0.32 : -0.28,
+              color: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -217,21 +239,22 @@ class _DifficultyPill extends StatelessWidget {
 
 class _CTA extends StatelessWidget {
   final bool isMain;
+  final Color accentColor;
 
-  const _CTA({required this.isMain});
+  const _CTA({required this.isMain, required this.accentColor});
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: isMain ? 50 : 40,
+      height: isMain ? 56 : 48,
       width: double.infinity,
       child: TextButton(
         onPressed: () {},
         style: TextButton.styleFrom(
           backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF030303),
+          foregroundColor: accentColor,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(isMain ? 14 : 12),
+            borderRadius: BorderRadius.circular(isMain ? 16 : 14),
           ),
         ),
         child: Row(
@@ -242,14 +265,14 @@ class _CTA extends StatelessWidget {
               style: TextStyle(
                 fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w700,
-                fontSize: isMain ? 16 : 14,
+                fontSize: isMain ? 18 : 16,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             Icon(
               Icons.arrow_forward,
-              size: isMain ? 22 : 20,
-              color: const Color(0xFF030303),
+              size: isMain ? 24 : 22,
+              color: accentColor,
             ),
           ],
         ),
