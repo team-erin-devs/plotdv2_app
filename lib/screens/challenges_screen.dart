@@ -117,6 +117,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
                               difficulty: c.difficulty,
                               gradient: gradient,
                               points: c.points,
+                              challenge: c,
                               // timeRemaining: c.timeRemaining ?? 'N/A',
                             ),
                           );

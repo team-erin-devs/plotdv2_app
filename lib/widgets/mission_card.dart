@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:team_erin_app/screens/challenge_detail_screen.dart';
 import '../models/challenge.dart';
 
 class MissionCard extends StatelessWidget {
@@ -6,6 +7,9 @@ class MissionCard extends StatelessWidget {
   final ChallengeDifficulty difficulty;
   final List<Color> gradient;
   final int points;
+  final Challenge challenge;
+  final bool showGlow;
+  final bool isMain;
 
   const MissionCard({
     super.key,
@@ -13,6 +17,9 @@ class MissionCard extends StatelessWidget {
     required this.difficulty,
     required this.gradient,
     required this.points,
+    required this.challenge,
+    this.showGlow = false,
+    this.isMain = true,
   });
 
   String _difficultyLabel(ChallengeDifficulty difficulty) {
@@ -41,6 +48,7 @@ class MissionCard extends StatelessWidget {
       accent: accent,
       isMain: isMain,
       points: points,
+      challenge: challenge,
     );
   }
 }
@@ -52,6 +60,7 @@ class _MissionCard extends StatelessWidget {
   final Color accent;
   final bool isMain;
   final int points;
+  final Challenge challenge;
 
   const _MissionCard({
     required this.title,
@@ -60,6 +69,7 @@ class _MissionCard extends StatelessWidget {
     required this.accent,
     required this.isMain,
     required this.points,
+    required this.challenge,
   });
 
   @override
@@ -127,7 +137,7 @@ class _MissionCard extends StatelessWidget {
                         '$points points',
                         style: TextStyle(
                           fontFamily: 'Urbanist',
-                          fontWeight: FontWeight.w100,
+                          fontWeight: FontWeight.w500,
                           fontSize: isMain ? 16 : 14,
                           color: Colors.white.withOpacity(0.9),
                         ),
@@ -147,7 +157,7 @@ class _MissionCard extends StatelessWidget {
                           fontFamily: 'Urbanist',
                           fontWeight: FontWeight.w500,
                           fontSize: isMain ? 14 : 12,
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withOpacity(0.9),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -168,7 +178,7 @@ class _MissionCard extends StatelessWidget {
               SizedBox(height: isMain ? 24 : 20),
 
               // CTA
-              _CTA(isMain: isMain, accentColor: accent),
+              _CTA(isMain: isMain, accentColor: accent, challenge: challenge),
             ],
           ),
         ),
@@ -224,7 +234,7 @@ class _DifficultyPill extends StatelessWidget {
             label,
             style: TextStyle(
               fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
               fontSize: isMain ? 16 : 14,
               height: 1.0,
               letterSpacing: isMain ? -0.32 : -0.28,
@@ -240,8 +250,13 @@ class _DifficultyPill extends StatelessWidget {
 class _CTA extends StatelessWidget {
   final bool isMain;
   final Color accentColor;
+  final Challenge challenge;
 
-  const _CTA({required this.isMain, required this.accentColor});
+  const _CTA({
+    required this.isMain,
+    required this.accentColor,
+    required this.challenge,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -249,7 +264,14 @@ class _CTA extends StatelessWidget {
       height: isMain ? 56 : 48,
       width: double.infinity,
       child: TextButton(
-        onPressed: () {},
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChallengeDetailScreen(challenge: challenge),
+            ),
+          );
+        },
         style: TextButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: accentColor,
@@ -264,7 +286,7 @@ class _CTA extends StatelessWidget {
               'See details',
               style: TextStyle(
                 fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
                 fontSize: isMain ? 18 : 16,
               ),
             ),

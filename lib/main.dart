@@ -40,6 +40,7 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const RegisterScreen(),
         '/home': (context) => const MainNavigation(),
         '/challenges': (context) => const ChallengesScreen(),
+        '/challenges/detail': (context) => const ChallengesScreen(),
       },
     );
   }

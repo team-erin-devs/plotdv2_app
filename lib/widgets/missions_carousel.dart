@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:team_erin_app/screens/challenge_detail_screen.dart';
 import "../models/challenge.dart";
 import '../services/api_service.dart';
 
@@ -151,6 +152,7 @@ class _MissionsCarouselState extends State<MissionsCarousel> {
                               gradient: grad,
                               accent: accent,
                               isMain: isMain,
+                              challenge: challenge,
                             ),
                           ),
                         ),
@@ -173,6 +175,7 @@ class _MissionCard extends StatelessWidget {
   final List<Color> gradient;
   final Color accent;
   final bool isMain;
+  final Challenge challenge;
 
   const _MissionCard({
     required this.title,
@@ -180,6 +183,7 @@ class _MissionCard extends StatelessWidget {
     required this.gradient,
     required this.accent,
     required this.isMain,
+    required this.challenge,
   });
 
   @override
@@ -301,7 +305,7 @@ class _MissionCard extends StatelessWidget {
                       const Spacer(),
 
                       // CTA button
-                      _CTA(isMain: isMain),
+                      _CTA(isMain: isMain, accentColor: accent, challenge: challenge),
                     ],
                   ),
                 ),
@@ -376,8 +380,13 @@ class _DifficultyPill extends StatelessWidget {
 
 class _CTA extends StatelessWidget {
   final bool isMain;
+  final Color accentColor;
+  final Challenge challenge;
   
-  const _CTA({required this.isMain});
+  const _CTA({
+    required this.isMain, 
+    required this.accentColor,
+    required this.challenge,});
 
   @override
   Widget build(BuildContext context) {
@@ -389,10 +398,17 @@ class _CTA extends StatelessWidget {
       height: h,
       width: double.infinity,
       child: TextButton(
-        onPressed: () {},
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChallengeDetailScreen(challenge: challenge),
+            ),
+          );
+        },
         style: TextButton.styleFrom(
           backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF030303),
+          foregroundColor: accentColor,
           shape: RoundedRectangleBorder(borderRadius: r),
           padding: EdgeInsets.zero,
         ),
@@ -403,7 +419,7 @@ class _CTA extends StatelessWidget {
               'See details',
               style: TextStyle(
                 fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
                 fontSize: textSize,
                 height: 1.2,
                 letterSpacing: -0.34,
@@ -413,7 +429,7 @@ class _CTA extends StatelessWidget {
             Icon(
               Icons.arrow_forward,
               size: isMain ? 22 : 20,
-              color: const Color(0xFF030303),
+              color: accentColor,
             ),
           ],
         ),
