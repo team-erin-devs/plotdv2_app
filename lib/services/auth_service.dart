@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'authenticated_api_service.dart';
 
 class AuthService {
   static const String baseUrl = 'http://localhost:8000/api/auth';
@@ -27,19 +28,26 @@ class AuthService {
 
     if (response.statusCode == 201) {
       final data = jsonDecode(response.body);
-      
-      // Save tokens and user info after registration
-      final tokens = data['tokens'];
+
+      // ✅ Django returns access_token and refresh_token at root level
+      final accessToken = data['access_token'];
+      final refreshToken = data['refresh_token'];
       final user = data['user'];
-      if (tokens != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('access_token', tokens['access'] ?? '');
-        await prefs.setString('refresh_token', tokens['refresh'] ?? '');
+
+      if (accessToken != null && refreshToken != null) {
+        await AuthenticatedApiService.saveTokens(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+        );
+
         if (user != null) {
+          final prefs = await SharedPreferences.getInstance();
           await prefs.setString('user_info', jsonEncode(user));
         }
+
+        print('✅ Tokens saved successfully!');
       }
-      
+
       return data;
     } else {
       throw Exception('Registration failed: ${response.body}');
@@ -59,17 +67,23 @@ class AuthService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
-      //save the tokens locally on device - so that the user doesn't need to login everytime they reopen the app
-      final tokens = data['tokens'];
+      // ✅ Django returns access_token and refresh_token at root level
+      final accessToken = data['access_token'];
+      final refreshToken = data['refresh_token'];
       final user = data['user'];
-      if (tokens != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('access_token', tokens['access'] ?? '');
-        await prefs.setString('refresh_token', tokens['refresh'] ?? '');
-        // Save user info for profile screen
+
+      if (accessToken != null && refreshToken != null) {
+        await AuthenticatedApiService.saveTokens(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+        );
+
         if (user != null) {
+          final prefs = await SharedPreferences.getInstance();
           await prefs.setString('user_info', jsonEncode(user));
         }
+
+        print('✅ Tokens saved successfully!');
       }
 
       return data;
