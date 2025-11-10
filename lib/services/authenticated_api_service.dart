@@ -195,4 +195,22 @@ class AuthenticatedApiService {
     
     throw Exception('User information not found. Please log in again.');
   }
+
+  /// Get current user's proof submissions
+  static Future<List<dynamic>> getUserProofs() async {
+    final response = await authenticatedGet('/api/proofs/');
+    
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      // Handle both array response and paginated response
+      if (data is List) {
+        return data;
+      } else if (data is Map && data.containsKey('results')) {
+        return data['results'];
+      }
+      return [];
+    } else {
+      throw Exception('Failed to load user proofs: ${response.statusCode}');
+    }
+  }
 }
