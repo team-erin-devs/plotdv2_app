@@ -2,7 +2,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/challenge.dart';
-import '../services/upload_service.dart'; // make sure path matches your project
+import '../services/upload_service.dart';
+import '../widgets/upload_mission_card.dart';
 
 class ChallengeDetailScreen extends StatefulWidget {
   final Challenge challenge;
@@ -31,20 +32,6 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
       }
     } catch (e) {
       _showSnack('Error picking image: $e');
-    }
-  }
-
-  Future<void> _takePhoto() async {
-    try {
-      final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
-      if (photo != null) {
-        final bytes = await photo.readAsBytes();
-        setState(
-          () => _images.add(_SelectedImage(bytes: bytes, name: photo.name)),
-        );
-      }
-    } catch (e) {
-      _showSnack('Error taking photo: $e');
     }
   }
 
@@ -82,216 +69,197 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
     }
   }
 
-  Color _getDifficultyColor() {
+  List<Color> _getGradient() {
     switch (widget.challenge.difficulty) {
       case ChallengeDifficulty.easy:
-        return Colors.greenAccent;
+        return [const Color(0xFF23B2CA), const Color(0xFF126C87)];
       case ChallengeDifficulty.medium:
-        return Colors.amberAccent;
+        return [const Color(0xFFA621ED), const Color(0xFF5E1387)];
       case ChallengeDifficulty.hard:
-        return Colors.redAccent;
+        return [const Color(0xFFED2190), const Color(0xFF871352)];
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final gradient = _getGradient();
+    final accent = gradient.first;
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        centerTitle: true,
         elevation: 0,
-        title: Text(
-          widget.challenge.title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(2),
-          child: Container(color: _getDifficultyColor(), height: 2),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.challenge.description,
-              style: const TextStyle(fontSize: 14, color: Colors.white70),
-            ),
-            const SizedBox(height: 24),
-
-            // Buttons
-            Row(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: UploadMissionCard(
+            title: widget.challenge.title,
+            description: widget.challenge.description,
+            difficulty: widget.challenge.difficulty,
+            points: widget.challenge.points,
+            gradient: gradient,
+            uploadSection: Column(
               children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _pickImage,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _getDifficultyColor(),
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                // Upload area with border
+                Container(
+                  width: double.infinity,
+                  constraints: const BoxConstraints(minHeight: 300),
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                      width: 2,
                     ),
-                    child: const Text(
-                      "GALLERY",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    children: [
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                            ),
+                        itemCount: _images.length,
+                        itemBuilder: (context, index) {
+                          final img = _images[index];
+                          return Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.memory(
+                                  img.bytes,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                ),
+                              ),
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: GestureDetector(
+                                  onTap: () => _removeImage(index),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.close,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
-                    ),
+                      const SizedBox(height: 84),
+
+                      // Upload file button (lighter color, inside the border)
+                      SizedBox(
+                        width: 250,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _pickImage,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white.withOpacity(0.8),
+                            foregroundColor: accent,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'upload file',
+                                style: TextStyle(
+                                  fontFamily: 'Urbanist',
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 18,
+                                  color: accent,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(Icons.arrow_upward, size: 24, color: accent),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
+                const SizedBox(height: 20),
+
+                // Submit proof button (white background, outside the border)
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
                   child: ElevatedButton(
-                    onPressed: _takePhoto,
+                    onPressed: _isUploading ? null : _uploadImages,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _getDifficultyColor(),
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: Colors.white,
+                      foregroundColor: accent,
+                      disabledBackgroundColor: Colors.grey[800],
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Text(
-                      "CAMERA",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    child: _isUploading
+                        ? SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: accent,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Submit proof',
+                                style: TextStyle(
+                                  fontFamily: 'Urbanist',
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 20,
+                                  color: accent,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Icon(
+                                Icons.arrow_forward,
+                                size: 24,
+                                color: accent,
+                              ),
+                            ],
+                          ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-
-            // Image previews
-            if (_images.isNotEmpty)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "SELECTED IMAGES",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: _getDifficultyColor(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                        ),
-                    itemCount: _images.length,
-                    itemBuilder: (context, index) {
-                      final img = _images[index];
-                      return Stack(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: _getDifficultyColor(),
-                                width: 2,
-                              ),
-                            ),
-                            child: Image.memory(img.bytes, fit: BoxFit.cover),
-                          ),
-                          Positioned(
-                            top: 2,
-                            right: 2,
-                            child: Container(
-                              color: Colors.redAccent,
-                              child: IconButton(
-                                icon: const Icon(Icons.close, size: 16),
-                                color: Colors.black,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                onPressed: () => _removeImage(index),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ],
-              )
-            else
-              Center(
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.image_outlined,
-                      size: 48,
-                      color: Colors.grey[700],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "NO IMAGES YET",
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-
-            const SizedBox(height: 24),
-
-            // Upload button
-            Center(
-              child: ElevatedButton(
-                onPressed: _isUploading ? null : _uploadImages,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _getDifficultyColor(),
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                    horizontal: 40,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isUploading
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          color: Colors.black,
-                          strokeWidth: 2.5,
-                        ),
-                      )
-                    : const Text(
-                        "UPLOAD",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Helper class to store image bytes + original filename
 class _SelectedImage {
   final Uint8List bytes;
   final String name;

@@ -8,7 +8,6 @@ class MissionCard extends StatelessWidget {
   final List<Color> gradient;
   final int points;
   final Challenge challenge;
-  final bool showGlow;
   final bool isMain;
 
   const MissionCard({
@@ -18,7 +17,6 @@ class MissionCard extends StatelessWidget {
     required this.gradient,
     required this.points,
     required this.challenge,
-    this.showGlow = false,
     this.isMain = true,
   });
 
@@ -137,7 +135,7 @@ class _MissionCard extends StatelessWidget {
                         '$points points',
                         style: TextStyle(
                           fontFamily: 'Urbanist',
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w400,
                           fontSize: isMain ? 16 : 14,
                           color: Colors.white.withOpacity(0.9),
                         ),
@@ -216,7 +214,6 @@ class _DifficultyPill extends StatelessWidget {
           width: isMain ? 1.2 : 1.0,
           color: Colors.white.withOpacity(0.5),
         ),
-        color: Colors.white.withOpacity(0.08),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
