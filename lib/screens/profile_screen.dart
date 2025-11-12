@@ -159,156 +159,165 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadProfileData,
-      color: Colors.blue,
-      backgroundColor: Colors.white,
+      color: const Color(0xFF4FC3F7),
+      backgroundColor: Colors.black,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: Column(
           children: [
-            // Profile Header Section
+            // Profile Header Section - All Black Background
             Container(
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(40),
-                  bottomRight: Radius.circular(40),
-                ),
-                color: Colors.grey[900],
-              ),
-              padding: const EdgeInsets.fromLTRB(20, 30, 20, 30),
+              color: Colors.black,
+              padding: const EdgeInsets.fromLTRB(20, 30, 20, 20),
               child: Column(
                 children: [
-                  // Profile Picture
-                  CircleAvatar(
-                    radius: 60,
-                    backgroundColor: Colors.grey[800],
-                    child: Text(
-                      username[0].toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
+                  // Profile Picture and Info Row
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Profile Picture on the left
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.grey[800],
+                        backgroundImage: const NetworkImage(
+                          'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=100&h=100&fit=crop',
+                        ),
+                        child: Container(), // Empty container to allow backgroundImage to show
                       ),
-                    ),
+                      
+                      const SizedBox(width: 16),
+                      
+                      // Username, Handle, and Bio on the right
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Username
+                            Text(
+                              username,
+                              style: GoogleFonts.epilogue(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            
+                            const SizedBox(height: 4),
+                            
+                            // Handle
+                            Text(
+                              '@${username.toLowerCase()}',
+                              style: GoogleFonts.urbanist(
+                                color: Colors.grey[500],
+                                fontSize: 14,
+                              ),
+                            ),
+                            
+                            const SizedBox(height: 12),
+                            
+                            // Bio
+                            Text(
+                              _userBio,
+                              style: GoogleFonts.urbanist(
+                                color: Colors.grey[300],
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   
                   const SizedBox(height: 20),
                   
-                  // Username
-                  Text(
-                    username,
-                    style: GoogleFonts.epilogue(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 4),
-                  
-                  // Handle
-                  Text(
-                    '@${username.toLowerCase()}',
-                    style: GoogleFonts.urbanist(
-                      color: Colors.grey[400],
-                      fontSize: 16,
+                  // University - Centered
+                  Center(
+                    child: Text(
+                      'queensu 🎓🏫',
+                      style: GoogleFonts.urbanist(
+                        color: Colors.grey[400],
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                   
                   const SizedBox(height: 16),
                   
-                  // Bio
-                  Text(
-                    _userBio,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.urbanist(
-                      color: Colors.grey[300],
-                      fontSize: 14,
-                      height: 1.5,
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  // University
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Center(
-                      child: Text(
-                        'queensu 🎓🏫',
-                        style: GoogleFonts.urbanist(
-                          color: Colors.white,
-                          fontSize: 14,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
+                  // Rank, Major, Class badges
+                  Wrap(
+                    alignment: WrapAlignment.start,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildBadge('Rank #$leaderboardPosition', Colors.red),
+                      _buildBadge(_userMajor, Colors.blue),
+                      _buildBadge(_userClass, Colors.purple),
+                    ],
                   ),
                   
                   const SizedBox(height: 20),
                   
-                  // Rank, Major, Class badges
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 8,
-                      runSpacing: 8,
+                  // Edit Profile and View ID buttons with gradient background
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.grey[900]!.withOpacity(0.3),
+                          Colors.grey[900]!.withOpacity(0.1),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
                       children: [
-                        _buildBadge('Rank #$leaderboardPosition', Colors.red),
-                        _buildBadge(_userMajor, Colors.blue),
-                        _buildBadge(_userClass, Colors.purple),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _editProfile,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: BorderSide(color: Colors.grey[700]!, width: 1),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              'Edit profile',
+                              style: GoogleFonts.urbanist(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _viewID,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: BorderSide(color: Colors.white, width: 1.5),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            child: Text(
+                              'View ID',
+                              style: GoogleFonts.urbanist(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Edit Profile and View ID buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _editProfile,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.white, width: 1.5),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Edit profile',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _viewID,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.white, width: 1.5),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'View ID',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
@@ -394,14 +403,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
         border: Border.all(color: color, width: 1.5),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Text(
-        text,
-        style: GoogleFonts.urbanist(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.2,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: GoogleFonts.urbanist(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
       ),
     );
   }

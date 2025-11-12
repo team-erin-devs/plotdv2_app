@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:team_erin_app/screens/home_screen.dart';
 import 'package:team_erin_app/screens/challenges_screen.dart';
 import 'package:team_erin_app/screens/leaderboard_screen.dart';
+import 'package:team_erin_app/screens/ranking_screen.dart';
 import 'package:team_erin_app/screens/login_screen.dart';
 import 'package:team_erin_app/screens/register_screen.dart';
 import 'package:team_erin_app/screens/profile_screen.dart';
@@ -59,7 +60,7 @@ class _MainNavigationState extends State<MainNavigation> {
   final List<Widget> _pages = [
     const HomeScreen(),          // 0 = Home
     const ChallengesScreen(),    // 1 = Missions
-    const LeaderboardScreen(),   // 2 = Ranking
+    const RankingScreen(),       // 2 = Ranking
     const ProfileScreen(),       // 3 = Profile
   ];
 

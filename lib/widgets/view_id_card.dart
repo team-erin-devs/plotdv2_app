@@ -79,7 +79,7 @@ class _ViewIDCardState extends State<ViewIDCard> with SingleTickerProviderStateM
     
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: EdgeInsets.zero,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       child: GestureDetector(
         onPanUpdate: _onPanUpdate,
         onPanEnd: _onPanEnd,
@@ -90,10 +90,13 @@ class _ViewIDCardState extends State<ViewIDCard> with SingleTickerProviderStateM
             ..rotateX(-_dragOffset.dy * 0.008),
           alignment: Alignment.center,
           child: Container(
-            width: size.width,
-            height: size.height,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
+            constraints: const BoxConstraints(
+              maxWidth: 400,
+              maxHeight: 600,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
@@ -102,116 +105,128 @@ class _ViewIDCardState extends State<ViewIDCard> with SingleTickerProviderStateM
                   Color(0xFF0f3460),
                 ],
               ),
-            ),
-            child: Stack(
-              children: [
-                // Animated shine effect
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: ShinePainter(offset: _dragOffset),
-                  ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 30,
+                  spreadRadius: 5,
                 ),
-                
-                // Content
-                SafeArea(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      child: Column(
-                        children: [
-                          // Back button
-                          Align(
-                            alignment: Alignment.topLeft,
-                            child: IconButton(
-                              icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                              onPressed: () => Navigator.pop(context),
-                            ),
-                          ),
-                          
-                          SizedBox(height: size.height * 0.05),
-                          
-                          // Profile picture placeholder
-                          Container(
-                            width: 130,
-                            height: 130,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 4),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.purple.withOpacity(0.5),
-                                  blurRadius: 30,
-                                  spreadRadius: 10,
-                                ),
-                              ],
-                            ),
-                            child: CircleAvatar(
-                              radius: 65,
-                              backgroundColor: Colors.grey[800],
-                              child: Icon(
-                                Icons.person,
-                                size: 65,
-                                color: Colors.grey[400],
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Stack(
+                children: [
+                  // Animated shine effect
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: ShinePainter(offset: _dragOffset),
+                    ),
+                  ),
+                  
+                  // Content
+                  SafeArea(
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Back button
+                            Align(
+                              alignment: Alignment.topRight,
+                              child: IconButton(
+                                icon: const Icon(Icons.close, color: Colors.white, size: 24),
+                                onPressed: () => Navigator.pop(context),
                               ),
                             ),
-                          ),
-                          
-                          SizedBox(height: size.height * 0.04),
-                          
-                          // Name
-                          Text(
-                            widget.username,
-                            style: GoogleFonts.epilogue(
-                              color: Colors.white,
-                              fontSize: 38,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                          
-                          SizedBox(height: size.height * 0.06),
-                          
-                          // QR Code
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.3),
-                                  blurRadius: 20,
-                                  spreadRadius: 5,
+                            
+                            const SizedBox(height: 10),
+                            
+                            // Profile picture placeholder
+                            Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 3),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.purple.withOpacity(0.5),
+                                    blurRadius: 20,
+                                    spreadRadius: 5,
+                                  ),
+                                ],
+                              ),
+                              child: CircleAvatar(
+                                radius: 50,
+                                backgroundColor: Colors.grey[800],
+                                child: Icon(
+                                  Icons.person,
+                                  size: 50,
+                                  color: Colors.grey[400],
                                 ),
-                              ],
+                              ),
                             ),
-                            child: QrImageView(
-                              data: _generateQRData(),
-                              version: QrVersions.auto,
-                              size: size.width * 0.5,
-                              backgroundColor: Colors.white,
-                              errorCorrectionLevel: QrErrorCorrectLevel.M,
+                            
+                            const SizedBox(height: 20),
+                            
+                            // Name
+                            Text(
+                              widget.username,
+                              style: GoogleFonts.epilogue(
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                              ),
                             ),
-                          ),
-                          
-                          SizedBox(height: size.height * 0.03),
-                          
-                          // URL text
-                          Text(
-                            'plotd.com/join',
-                            style: GoogleFonts.urbanist(
-                              color: Colors.grey[300],
-                              fontSize: 16,
-                              letterSpacing: 0.5,
-                              fontWeight: FontWeight.w500,
+                            
+                            const SizedBox(height: 30),
+                            
+                            // QR Code
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.3),
+                                    blurRadius: 15,
+                                    spreadRadius: 3,
+                                  ),
+                                ],
+                              ),
+                              child: QrImageView(
+                                data: _generateQRData(),
+                                version: QrVersions.auto,
+                                size: 200,
+                                backgroundColor: Colors.white,
+                                errorCorrectionLevel: QrErrorCorrectLevel.M,
+                              ),
                             ),
-                          ),                          SizedBox(height: size.height * 0.05),
-                        ],
+                            
+                            const SizedBox(height: 20),
+                            
+                            // URL text
+                            Text(
+                              'plotd.com/join',
+                              style: GoogleFonts.urbanist(
+                                color: Colors.grey[300],
+                                fontSize: 14,
+                                letterSpacing: 0.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
