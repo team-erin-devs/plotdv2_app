@@ -21,8 +21,6 @@ class AuthService {
         'username': username,
         'email': email,
         'password': password,
-        'university': university,
-        'student_id': studentId,
       }),
     );
 

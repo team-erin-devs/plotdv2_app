@@ -71,6 +71,7 @@ flutter:
 
   assets:
     - assets/fonts/
+    - assets/images/login logo.png
 
   fonts:
     - family: Epoch
