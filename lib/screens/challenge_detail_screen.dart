@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import '../models/challenge.dart';
 import '../services/upload_service.dart';
 import '../widgets/upload_mission_card.dart';
@@ -15,27 +15,47 @@ class ChallengeDetailScreen extends StatefulWidget {
 }
 
 class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
-  final List<_SelectedImage> _images = [];
-  final ImagePicker _picker = ImagePicker();
+  final List<_SelectedFile> _files = [];
   bool _isUploading = false;
 
-  Future<void> _pickImage() async {
+  Future<void> _pickFile() async {
     try {
-      final XFile? picked = await _picker.pickImage(
-        source: ImageSource.gallery,
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: [
+          'jpg',
+          'jpeg',
+          'png',
+          'gif',
+          'mp4',
+          'mov',
+          'avi',
+          'pdf',
+        ],
+        allowMultiple: false,
+        withData: true,
       );
-      if (picked != null) {
-        final bytes = await picked.readAsBytes();
-        setState(
-          () => _images.add(_SelectedImage(bytes: bytes, name: picked.name)),
-        );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        if (file.bytes != null) {
+          setState(
+            () => _files.add(
+              _SelectedFile(
+                bytes: file.bytes!,
+                name: file.name,
+                extension: file.extension ?? '',
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
-      _showSnack('Error picking image: $e');
+      _showSnack('Error picking file: $e');
     }
   }
 
-  void _removeImage(int index) => setState(() => _images.removeAt(index));
+  void _removeFile(int index) => setState(() => _files.removeAt(index));
 
   void _showSnack(String msg) {
     if (!mounted) return;
@@ -44,29 +64,75 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
     );
   }
 
-  Future<void> _uploadImages() async {
-    if (_images.isEmpty) {
-      _showSnack("Please select at least one image before uploading.");
+  Future<void> _uploadFiles() async {
+    if (_files.isEmpty) {
+      _showSnack("Please select at least one file before uploading.");
       return;
     }
 
     setState(() => _isUploading = true);
 
     try {
-      for (final img in _images) {
+      for (final file in _files) {
         await UploadService.uploadProof(
-          bytes: img.bytes,
-          filename: img.name,
+          bytes: file.bytes,
+          filename: file.name,
           challengeId: widget.challenge.id,
         );
       }
       _showSnack("Upload successful!");
-      setState(() => _images.clear());
+      setState(() => _files.clear());
     } catch (e) {
       _showSnack("Upload failed: $e");
     } finally {
       setState(() => _isUploading = false);
     }
+  }
+
+  Widget _buildFileThumbnail(_SelectedFile file) {
+    if (['jpg', 'jpeg', 'png', 'gif'].contains(file.extension.toLowerCase())) {
+      return Image.memory(
+        file.bytes,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+      );
+    }
+
+    IconData icon;
+    Color color;
+
+    if (['mp4', 'mov', 'avi'].contains(file.extension.toLowerCase())) {
+      icon = Icons.videocam;
+      color = Colors.purple;
+    } else if (file.extension.toLowerCase() == 'pdf') {
+      icon = Icons.picture_as_pdf;
+      color = Colors.red;
+    } else {
+      icon = Icons.insert_drive_file;
+      color = Colors.blue;
+    }
+
+    return Container(
+      color: Colors.grey[900],
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 48, color: color),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              file.name,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   List<Color> _getGradient() {
@@ -130,25 +196,20 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                               crossAxisSpacing: 12,
                               mainAxisSpacing: 12,
                             ),
-                        itemCount: _images.length,
+                        itemCount: _files.length,
                         itemBuilder: (context, index) {
-                          final img = _images[index];
+                          final file = _files[index];
                           return Stack(
                             children: [
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
-                                child: Image.memory(
-                                  img.bytes,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                ),
+                                child: _buildFileThumbnail(file),
                               ),
                               Positioned(
                                 top: 4,
                                 right: 4,
                                 child: GestureDetector(
-                                  onTap: () => _removeImage(index),
+                                  onTap: () => _removeFile(index),
                                   child: Container(
                                     padding: const EdgeInsets.all(4),
                                     decoration: BoxDecoration(
@@ -174,7 +235,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                         width: 250,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: _pickImage,
+                          onPressed: _pickFile,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white.withOpacity(0.8),
                             foregroundColor: accent,
@@ -211,7 +272,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: _isUploading ? null : _uploadImages,
+                    onPressed: _isUploading ? null : _uploadFiles,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: accent,
@@ -260,8 +321,13 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
   }
 }
 
-class _SelectedImage {
+class _SelectedFile {
   final Uint8List bytes;
   final String name;
-  _SelectedImage({required this.bytes, required this.name});
+  final String extension;
+  _SelectedFile({
+    required this.bytes,
+    required this.name,
+    required this.extension,
+  });
 }
