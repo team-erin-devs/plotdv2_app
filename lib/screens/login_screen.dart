@@ -212,7 +212,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 text: "Register",
                                 recognizer: TapGestureRecognizer()
                                   ..onTap = () {
-                                    Navigator.pop(context);
+                                    Navigator.pushReplacementNamed(context, '/register');
+                                    // or Navigator.pushNamed(context, '/register');
                                   },
                                 style: const TextStyle(
                                   decoration: TextDecoration.underline,
@@ -220,6 +221,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   color: grey,
                                 ),
                               ),
+
                             ],
                           ),
                         ),
