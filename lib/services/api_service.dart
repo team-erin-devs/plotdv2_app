@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:team_erin_app/models/user_profile.dart';
 import '../models/challenge.dart';
 import '../models/leaderboard_entry.dart';
-import '../models/user.dart';
+import '../models/season.dart';
 import 'authenticated_api_service.dart';
 
 class ApiService {
@@ -100,6 +100,17 @@ class ApiService {
       rethrow;
     }
   }
+
+  // Fetch Season
+  static Future<Season> fetchSeason() async {
+  final response = await AuthenticatedApiService.authenticatedGet('/api/season/');
+
+  if (response.statusCode == 200) {
+    return Season.fromJson(jsonDecode(response.body));
+  } else {
+    throw Exception("Failed to fetch season: ${response.statusCode}");
+  }
+}
 
   // Fetch user profile
   static Future<UserProfile> fetchUserProfile() async {
