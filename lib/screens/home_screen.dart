@@ -34,29 +34,42 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadSeason() async {
-  try {
-    print('🟢 Starting to fetch season...');
-    final season = await ApiService.fetchSeason();
-    print('🟢 Season fetched successfully!');
-    print('🟢 Season name: ${season.name}');
-    print('🟢 Time remaining: ${season.timeRemaining}');
-    print('🟢 End date: ${season.endDate}');
-    
-    setState(() {
-      _season = season;
-      _localTimeRemaining = season.timeRemaining;
-      _isLoading = false;
-    });
-    _startCountdown();
-  } catch (e, stackTrace) {
-    print('🔴 Error fetching season: $e');
-    print('🔴 Stack trace: $stackTrace');
-    setState(() {
-      _errorMessage = e.toString();
-      _isLoading = false;
-    });
+    try {
+      print('🟢 Starting to fetch season...');
+      final season = await ApiService.fetchSeason();
+      print('🟢 Season fetched successfully!');
+      print('🟢 Season name: ${season.name}');
+      print('🟢 Time remaining: ${season.timeRemaining}');
+      print('🟢 End date: ${season.endDate}');
+      
+      setState(() {
+        _season = season;
+        _localTimeRemaining = season.timeRemaining;
+        _isLoading = false;
+        _errorMessage = null;
+      });
+      _startCountdown();
+    } catch (e, stackTrace) {
+      print('🔴 Error fetching season: $e');
+      print('🔴 Stack trace: $stackTrace');
+      
+      // Check if it's a 500 error (season ended) or a real error
+      final errorString = e.toString();
+      final is500Error = errorString.contains('500');
+      
+      setState(() {
+        if (is500Error) {
+          // Treat 500 as season ended
+          _localTimeRemaining = 0;
+          _errorMessage = null;
+        } else {
+          // Real error - show error message
+          _errorMessage = errorString;
+        }
+        _isLoading = false;
+      });
+    }
   }
-}
 
   void _startCountdown() {
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -175,13 +188,27 @@ class _HeaderSection extends StatelessWidget {
             ),
           )
         else if (errorMessage != null)
-          Text(
-            'Error loading season',
-            style: TextStyle(
-              fontFamily: 'Epoch',
-              fontSize: 24,
-              color: Colors.red.shade300,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Error loading season',
+                style: TextStyle(
+                  fontFamily: 'Epoch',
+                  fontSize: 24,
+                  color: Colors.red.shade300,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                errorMessage!,
+                style: const TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontSize: 14,
+                  color: Color(0xFFACACAC),
+                ),
+              ),
+            ],
           )
         else
           ShaderMask(

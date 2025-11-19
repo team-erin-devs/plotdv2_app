@@ -76,7 +76,14 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
     return '${days}d ${hours}h ${minutes}m';
   }
 
+  bool get _isSeasonActive => _localTimeRemaining > 0;
+
   Future<void> _pickFile() async {
+    if (!_isSeasonActive) {
+      _showSnack("Season has ended. No more uploads allowed.");
+      return;
+    }
+
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -123,6 +130,11 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
   }
 
   Future<void> _uploadFiles() async {
+    if (!_isSeasonActive) {
+      _showSnack("Season has ended. No more uploads allowed.");
+      return;
+    }
+
     if (_files.isEmpty) {
       _showSnack("Please select at least one file before uploading.");
       return;
@@ -229,9 +241,42 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
             difficulty: widget.challenge.difficulty,
             points: widget.challenge.points,
             gradient: gradient,
-            timeRemaining: _isLoadingSeason ? '...' : _getTimeRemaining(), // Pass the actual timer
+            timeRemaining: _isLoadingSeason ? '...' : _getTimeRemaining(),
             uploadSection: Column(
               children: [
+                // Season ended message
+                if (!_isSeasonActive && !_isLoadingSeason)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.red.withOpacity(0.5),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.red.shade300, size: 24),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Season has ended. Uploads are no longer accepted.',
+                            style: TextStyle(
+                              fontFamily: 'Urbanist',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.red.shade300,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                 // Upload area with border
                 Container(
                   width: double.infinity,
@@ -239,7 +284,9 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                   padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
+                      color: _isSeasonActive 
+                          ? Colors.white.withOpacity(0.3)
+                          : Colors.grey.withOpacity(0.2),
                       width: 2,
                     ),
                     borderRadius: BorderRadius.circular(20),
@@ -294,10 +341,14 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                         width: 250,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: _pickFile,
+                          onPressed: _isSeasonActive ? _pickFile : null,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white.withOpacity(0.8),
+                            backgroundColor: _isSeasonActive 
+                                ? Colors.white.withOpacity(0.8)
+                                : Colors.grey.withOpacity(0.3),
                             foregroundColor: accent,
+                            disabledBackgroundColor: Colors.grey.withOpacity(0.3),
+                            disabledForegroundColor: Colors.grey.shade600,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -312,11 +363,15 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                                   fontFamily: 'Urbanist',
                                   fontWeight: FontWeight.w500,
                                   fontSize: 18,
-                                  color: accent,
+                                  color: _isSeasonActive ? accent : Colors.grey.shade600,
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Icon(Icons.arrow_upward, size: 24, color: accent),
+                              Icon(
+                                Icons.arrow_upward, 
+                                size: 24, 
+                                color: _isSeasonActive ? accent : Colors.grey.shade600,
+                              ),
                             ],
                           ),
                         ),
@@ -331,11 +386,12 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: _isUploading ? null : _uploadFiles,
+                    onPressed: (_isUploading || !_isSeasonActive) ? null : _uploadFiles,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: accent,
                       disabledBackgroundColor: Colors.grey[800],
+                      disabledForegroundColor: Colors.grey.shade600,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -358,14 +414,14 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                                   fontFamily: 'Urbanist',
                                   fontWeight: FontWeight.w500,
                                   fontSize: 20,
-                                  color: accent,
+                                  color: _isSeasonActive ? accent : Colors.grey.shade600,
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Icon(
                                 Icons.arrow_forward,
                                 size: 24,
-                                color: accent,
+                                color: _isSeasonActive ? accent : Colors.grey.shade600,
                               ),
                             ],
                           ),
