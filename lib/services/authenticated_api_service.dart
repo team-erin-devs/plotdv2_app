@@ -273,4 +273,40 @@ class AuthenticatedApiService {
       throw Exception('Failed to update profile: ${response.statusCode} - ${response.body}');
     }
   }
+
+  /// Get presigned URL for profile picture upload
+  static Future<Map<String, dynamic>> getProfilePicturePresignedUrl({
+    required String filename,
+  }) async {
+    final headers = await getAuthHeaders();
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/profile-picture/presign/'),
+      headers: headers,
+      body: jsonEncode({'filename': filename}),
+    );
+
+    if (response.statusCode == 401) {
+      final refreshed = await refreshAccessToken();
+      if (refreshed) {
+        final newHeaders = await getAuthHeaders();
+        final retryResponse = await http.post(
+          Uri.parse('$baseUrl/api/profile-picture/presign/'),
+          headers: newHeaders,
+          body: jsonEncode({'filename': filename}),
+        );
+        
+        if (retryResponse.statusCode == 200) {
+          return jsonDecode(retryResponse.body);
+        } else {
+          throw Exception('Failed to get presigned URL: ${retryResponse.statusCode}');
+        }
+      }
+    }
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to get presigned URL: ${response.statusCode} - ${response.body}');
+    }
+  }
 }

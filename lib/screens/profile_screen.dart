@@ -89,6 +89,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         currentBio: _userBio,
         currentMajor: _userMajor,
         currentClass: _userClass,
+        currentProfilePictureUrl: _profilePictureUrl,
       ),
     );
     
@@ -99,6 +100,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           bio: result['bio'],
           major: result['major'],
           classYear: result['class'],
+          profilePicture: result['profile_picture'],
         );
         
         setState(() {
@@ -106,6 +108,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _userBio = updatedProfile['bio'] ?? 'No bio yet';
           _userMajor = updatedProfile['major'] ?? 'Not specified';
           _userClass = updatedProfile['class_year'] ?? 'Not specified';
+          _profilePictureUrl = updatedProfile['profile_picture'] ?? '';
         });
         
         if (mounted) {
@@ -470,6 +473,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   List<Widget> _buildBadgeIcons(int completed, int points) {
+    // Don't show any badges if user hasn't earned any
+    if (completed == 0 && points == 0) {
+      return [
+        Container(
+          padding: const EdgeInsets.all(20),
+          child: Text(
+            'Complete challenges to earn badges!',
+            style: GoogleFonts.urbanist(
+              color: Colors.grey[600],
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ];
+    }
+    
     // Colorful gradient badges - always show 5 with different colors
     final badgeData = [
       {
@@ -524,8 +543,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildMissionGrid() {
-    // Show sample mission placeholders (always show 6 items for demo)
-    final sampleMissions = List.generate(6, (index) => index);
+    // If no completed proofs, show empty state
+    if (_completedProofs == null || _completedProofs!.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          children: [
+            Icon(Icons.photo_library_outlined, size: 64, color: Colors.grey[700]),
+            const SizedBox(height: 16),
+            Text(
+              'No completed missions yet',
+              style: GoogleFonts.urbanist(
+                color: Colors.grey[600],
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Complete challenges to see them here!',
+              style: GoogleFonts.urbanist(
+                color: Colors.grey[700],
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
     
     // Create a grid of mission images (3 columns, 2 rows)
     return GridView.builder(
@@ -537,29 +582,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
         mainAxisSpacing: 6,
         childAspectRatio: 1,
       ),
-      itemCount: 6,
+      itemCount: _completedProofs!.length,
       itemBuilder: (context, index) {
-        // Check if we have real proofs
-        if (_completedProofs != null && index < _completedProofs!.length) {
-          final proof = _completedProofs![index];
-          final fileUrl = proof['file'] as String?;
-          
-          if (fileUrl != null && fileUrl.isNotEmpty) {
-            return ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                fileUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return _buildPlaceholderMission(index);
-                },
-              ),
-            );
-          }
+        final proof = _completedProofs![index];
+        final fileUrl = proof['file'] as String?;
+        
+        if (fileUrl != null && fileUrl.isNotEmpty) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              fileUrl,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                          : null,
+                      color: const Color(0xFF4FC3F7),
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.broken_image, color: Colors.grey[700]),
+                );
+              },
+            ),
+          );
         }
         
-        // Show sample placeholder
-        return _buildPlaceholderMission(index);
+        // If no file URL, show placeholder
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[900],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(Icons.image_not_supported, color: Colors.grey[700]),
+        );
       },
     );
   }

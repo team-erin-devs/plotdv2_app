@@ -136,4 +136,38 @@ class UploadService {
       rethrow;
     }
   }
+
+  /// Upload profile picture to cloud storage
+  static Future<String> uploadProfilePicture({
+    required Uint8List bytes,
+    required String filename,
+  }) async {
+    print("🔹 Starting profile picture upload for $filename");
+    try {
+      // Step 1: Get presigned URL from backend
+      final presignData = await AuthenticatedApiService.getProfilePicturePresignedUrl(
+        filename: filename,
+      );
+
+      final presignedUrl = presignData['presigned_url'] as String;
+      final fileUrl = presignData['file_url'] as String;
+      final uploadContentType = lookupMimeType(filename) ?? 'image/jpeg';
+
+      print("🔹 Uploading profile picture with Content-Type: $uploadContentType");
+
+      // Step 2: Upload to cloud storage
+      await uploadToBackblaze(
+        presignedUrl: presignedUrl,
+        bytes: bytes,
+        contentType: uploadContentType,
+      );
+
+      print("✅ Profile picture upload completed: $fileUrl");
+      return fileUrl;
+    } catch (e, stack) {
+      print("❌ Profile picture upload failed for $filename: $e");
+      print(stack);
+      rethrow;
+    }
+  }
 }
