@@ -152,7 +152,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
     final accent = gradient.first;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
