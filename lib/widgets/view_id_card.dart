@@ -6,11 +6,13 @@ import 'dart:convert';
 class ViewIDCard extends StatefulWidget {
   final String username;
   final String handle;
+  final String? profilePictureUrl;
   
   const ViewIDCard({
     super.key,
     required this.username,
     required this.handle,
+    this.profilePictureUrl,
   });
 
   @override
@@ -161,11 +163,16 @@ class _ViewIDCardState extends State<ViewIDCard> with SingleTickerProviderStateM
                               child: CircleAvatar(
                                 radius: 50,
                                 backgroundColor: Colors.grey[800],
-                                child: Icon(
-                                  Icons.person,
-                                  size: 50,
-                                  color: Colors.grey[400],
-                                ),
+                                backgroundImage: widget.profilePictureUrl != null && widget.profilePictureUrl!.isNotEmpty
+                                    ? NetworkImage(widget.profilePictureUrl!)
+                                    : null,
+                                child: widget.profilePictureUrl == null || widget.profilePictureUrl!.isEmpty
+                                    ? Icon(
+                                        Icons.person,
+                                        size: 50,
+                                        color: Colors.grey[400],
+                                      )
+                                    : null,
                               ),
                             ),
                             

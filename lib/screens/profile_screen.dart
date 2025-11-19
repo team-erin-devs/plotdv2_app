@@ -15,14 +15,16 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _userStats;
   Map<String, dynamic>? _userInfo;
+  Map<String, dynamic>? _userProfile;
   List<dynamic>? _completedProofs;
   bool _isLoading = true;
   String? _error;
   
-  // User editable fields
-  String _userBio = 'trying to figure life out 🏆✨\ntech | fitness | lifestyle';
-  String _userMajor = 'Commerce';
-  String _userClass = 'Class of \'27';
+  // User editable fields (loaded from backend)
+  String _userBio = '';
+  String _userMajor = '';
+  String _userClass = '';
+  String _profilePictureUrl = '';
 
   @override
   void initState() {
@@ -37,15 +39,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      // Load user stats, info, and completed proofs in parallel
+      // Load user stats, info, profile, and completed proofs in parallel
       final stats = await AuthenticatedApiService.getUserStats();
       final info = await AuthenticatedApiService.getCurrentUser();
+      final profile = await AuthenticatedApiService.getUserProfile();
       final proofs = await AuthenticatedApiService.getUserProofs();
       
       setState(() {
         _userStats = stats;
         _userInfo = info;
+        _userProfile = profile;
         _completedProofs = proofs.where((p) => p['status'] == 'approved').toList();
+        
+        // Load profile fields from backend
+        _userBio = profile['bio'] ?? 'No bio yet';
+        _userMajor = profile['major'] ?? 'Not specified';
+        _userClass = profile['class_year'] ?? 'Not specified';
+        _profilePictureUrl = profile['profile_picture'] ?? '';
+        
         _isLoading = false;
       });
     } catch (e) {
@@ -82,18 +93,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     
     if (result != null) {
-      setState(() {
-        _userBio = result['bio'] ?? _userBio;
-        _userMajor = result['major'] ?? _userMajor;
-        _userClass = result['class'] ?? _userClass;
-      });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile updated!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      try {
+        // Call API to update profile
+        final updatedProfile = await AuthenticatedApiService.updateUserProfile(
+          bio: result['bio'],
+          major: result['major'],
+          classYear: result['class'],
+        );
+        
+        setState(() {
+          _userProfile = updatedProfile;
+          _userBio = updatedProfile['bio'] ?? 'No bio yet';
+          _userMajor = updatedProfile['major'] ?? 'Not specified';
+          _userClass = updatedProfile['class_year'] ?? 'Not specified';
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile updated!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update profile: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -104,6 +136,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) => ViewIDCard(
         username: username,
         handle: '@${username.toLowerCase()}',
+        profilePictureUrl: _profilePictureUrl,
       ),
     );
   }
@@ -179,10 +212,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       CircleAvatar(
                         radius: 50,
                         backgroundColor: Colors.grey[800],
-                        backgroundImage: const NetworkImage(
-                          'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=100&h=100&fit=crop',
-                        ),
-                        child: Container(), // Empty container to allow backgroundImage to show
+                        backgroundImage: _profilePictureUrl.isNotEmpty
+                            ? NetworkImage(_profilePictureUrl)
+                            : null,
+                        child: _profilePictureUrl.isEmpty
+                            ? Icon(Icons.person, size: 50, color: Colors.grey[600])
+                            : null,
                       ),
                       
                       const SizedBox(width: 16),
