@@ -9,6 +9,7 @@ class MissionCard extends StatelessWidget {
   final int points;
   final Challenge challenge;
   final bool isMain;
+  final String timeRemaining; // Added this parameter
 
   const MissionCard({
     super.key,
@@ -18,6 +19,7 @@ class MissionCard extends StatelessWidget {
     required this.points,
     required this.challenge,
     this.isMain = true,
+    required this.timeRemaining, // Added this parameter
   });
 
   String _difficultyLabel(ChallengeDifficulty difficulty) {
@@ -47,6 +49,7 @@ class MissionCard extends StatelessWidget {
       isMain: isMain,
       points: points,
       challenge: challenge,
+      timeRemaining: timeRemaining, // Pass it down
     );
   }
 }
@@ -59,6 +62,7 @@ class _MissionCard extends StatelessWidget {
   final bool isMain;
   final int points;
   final Challenge challenge;
+  final String timeRemaining; // Added this parameter
 
   const _MissionCard({
     required this.title,
@@ -68,6 +72,7 @@ class _MissionCard extends StatelessWidget {
     required this.isMain,
     required this.points,
     required this.challenge,
+    required this.timeRemaining, // Added this parameter
   });
 
   @override
@@ -160,7 +165,7 @@ class _MissionCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '0d 22h 33m 45s',
+                        timeRemaining, // Use the passed timer value
                         style: TextStyle(
                           fontFamily: 'Urbanist',
                           fontWeight: FontWeight.w700,

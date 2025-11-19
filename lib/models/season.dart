@@ -4,7 +4,7 @@ class Season {
   final DateTime startDate;
   final DateTime endDate;
   final bool isActive;
-  final int timeRemaining; // in seconds
+  final double timeRemaining; // in seconds
 
   Season({
     required this.id,
@@ -22,7 +22,7 @@ class Season {
       startDate: DateTime.parse(json['start_date']),
       endDate: DateTime.parse(json['end_date']),
       isActive: json['is_active'],
-      timeRemaining: json['time_remaining'] ?? 0,
+      timeRemaining: (json['time_remaining'] ?? 0).toDouble(),
     );
   }
 
@@ -36,4 +36,14 @@ class Season {
       'time_remaining': timeRemaining,
     };
   }
+}
+
+extension SeasonHelpers on Season {
+  Duration get remainingDuration => Duration(seconds: timeRemaining.toInt());
+
+  int get remainingDays => remainingDuration.inDays;
+
+  int get remainingHours => remainingDuration.inHours % 24;
+
+  int get remainingMinutes => remainingDuration.inMinutes % 60;
 }

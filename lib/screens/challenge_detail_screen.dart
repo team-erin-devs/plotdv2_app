@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/challenge.dart';
+import '../models/season.dart';
 import '../services/upload_service.dart';
+import '../services/api_service.dart';
 import '../widgets/upload_mission_card.dart';
 
 class ChallengeDetailScreen extends StatefulWidget {
@@ -17,6 +20,61 @@ class ChallengeDetailScreen extends StatefulWidget {
 class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
   final List<_SelectedFile> _files = [];
   bool _isUploading = false;
+  Season? _season;
+  bool _isLoadingSeason = true;
+  Timer? _countdownTimer;
+  double _localTimeRemaining = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSeason();
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadSeason() async {
+    try {
+      final season = await ApiService.fetchSeason();
+      setState(() {
+        _season = season;
+        _localTimeRemaining = season.timeRemaining;
+        _isLoadingSeason = false;
+      });
+      _startCountdown();
+    } catch (e) {
+      setState(() {
+        _isLoadingSeason = false;
+      });
+    }
+  }
+
+  void _startCountdown() {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_localTimeRemaining > 0) {
+        setState(() {
+          _localTimeRemaining--;
+        });
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  String _getTimeRemaining() {
+    if (_localTimeRemaining <= 0) return 'Season ended';
+
+    final duration = Duration(seconds: _localTimeRemaining.toInt());
+    final days = duration.inDays;
+    final hours = duration.inHours % 24;
+    final minutes = duration.inMinutes % 60;
+
+    return '${days}d ${hours}h ${minutes}m';
+  }
 
   Future<void> _pickFile() async {
     try {
@@ -152,7 +210,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
     final accent = gradient.first;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
@@ -171,6 +229,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
             difficulty: widget.challenge.difficulty,
             points: widget.challenge.points,
             gradient: gradient,
+            timeRemaining: _isLoadingSeason ? '...' : _getTimeRemaining(), // Pass the actual timer
             uploadSection: Column(
               children: [
                 // Upload area with border
@@ -192,10 +251,10 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                            ),
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
                         itemCount: _files.length,
                         itemBuilder: (context, index) {
                           final file = _files[index];
