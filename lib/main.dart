@@ -8,14 +8,23 @@ import 'package:team_erin_app/screens/login_screen.dart';
 import 'package:team_erin_app/screens/register_screen.dart';
 import 'package:team_erin_app/screens/profile_screen.dart';
 import 'package:team_erin_app/screens/welcome_screen.dart';
+import 'package:team_erin_app/widgets/auth_guard.dart';
+import 'services/auth_service.dart';
 
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final bool loggedIn = await AuthService.isAuthenticated();
+
+  runApp(MyApp(loggedIn: loggedIn));
 }
 
+
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool loggedIn;
+
+  const MyApp({super.key, required this.loggedIn});
 
   @override
   Widget build(BuildContext context) {
@@ -37,15 +46,52 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: false, // retro vibe
       ),
-      initialRoute: '/welcome',
-      routes: {
-        '/welcome': (context) => const WelcomeScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/home': (context) => const MainNavigation(),
-        '/challenges': (context) => const ChallengesScreen(),
-        '/challenges/detail': (context) => const ChallengesScreen(),
-      },
+      home: const AuthSplashScreen(), // Start with splash screen that checks auth
+        routes: {
+          '/welcome': (context) => const WelcomeScreen(),
+          '/login': (context) => const LoginScreen(),
+          '/register': (context) => const RegisterScreen(),
+          '/home': (context) => AuthGuard(child: const MainNavigation()),
+          '/challenges': (context) => AuthGuard(child: const ChallengesScreen()),
+          '/challenges/detail': (context) => AuthGuard(child: const ChallengesScreen()),
+        },
+    );
+  }
+}
+
+class AuthSplashScreen extends StatefulWidget {
+  const AuthSplashScreen({super.key});
+
+  @override
+  State<AuthSplashScreen> createState() => _AuthSplashScreenState();
+}
+
+class _AuthSplashScreenState extends State<AuthSplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthAndNavigate();
+  }
+
+  Future<void> _checkAuthAndNavigate() async {
+    final isAuth = await AuthService.isAuthenticated();
+    
+    if (!mounted) return;
+    
+    if (isAuth) {
+      Navigator.of(context).pushReplacementNamed('/home');
+    } else {
+      Navigator.of(context).pushReplacementNamed('/welcome');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      ),
     );
   }
 }
