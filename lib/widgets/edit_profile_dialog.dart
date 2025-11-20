@@ -1,16 +1,22 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import '../services/upload_service.dart';
+import 'circle_image_cropper.dart';
 
 class EditProfileDialog extends StatefulWidget {
   final String currentBio;
   final String currentMajor;
   final String currentClass;
+  final String? currentProfilePictureUrl;
   
   const EditProfileDialog({
     super.key,
     required this.currentBio,
     required this.currentMajor,
     required this.currentClass,
+    this.currentProfilePictureUrl,
   });
 
   @override
@@ -21,8 +27,13 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
   late TextEditingController _bioController;
   String? _selectedMajor;
   String? _selectedClass;
+  String? _newProfilePictureUrl;
+  Uint8List? _selectedImageBytes;
+  bool _isUploading = false;
+  final ImagePicker _picker = ImagePicker();
   
   final List<String> _majors = [
+    'Not specified',
     'Undecided Major',
     'Commerce',
     'Engineering',
@@ -47,6 +58,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
   ];
   
   final List<String> _classes = [
+    'Not specified',
     'Class of \'25',
     'Class of \'26',
     'Class of \'27',
@@ -60,14 +72,61 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
   void initState() {
     super.initState();
     _bioController = TextEditingController(text: widget.currentBio);
-    _selectedMajor = widget.currentMajor;
-    _selectedClass = widget.currentClass;
+    // Only set values if they exist in the dropdown lists
+    _selectedMajor = _majors.contains(widget.currentMajor) ? widget.currentMajor : null;
+    _selectedClass = _classes.contains(widget.currentClass) ? widget.currentClass : null;
   }
 
   @override
   void dispose() {
     _bioController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickProfilePicture() async {
+    try {
+      final XFile? picked = await _picker.pickImage(
+        source: ImageSource.gallery,
+      );
+      
+      if (picked != null) {
+        // Get the image bytes
+        final imageBytes = await picked.readAsBytes();
+        
+        // Show our custom circular cropper
+        if (mounted) {
+          final Uint8List? croppedBytes = await showDialog<Uint8List>(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => CircleImageCropper(imageBytes: imageBytes),
+          );
+          
+          if (croppedBytes != null) {
+            setState(() {
+              _selectedImageBytes = croppedBytes;
+            });
+            
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Image selected! Click Save to upload.'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -95,24 +154,22 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
               
               // Change Profile Picture Button
               OutlinedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Profile picture upload coming soon!'),
-                      backgroundColor: Colors.blue,
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.camera_alt, color: Colors.white),
+                onPressed: _isUploading ? null : _pickProfilePicture,
+                icon: Icon(
+                  _selectedImageBytes != null ? Icons.check_circle : Icons.camera_alt,
+                  color: _selectedImageBytes != null ? Colors.green : Colors.white,
+                ),
                 label: Text(
-                  'Change Profile Picture',
+                  _selectedImageBytes != null ? 'Image Selected' : 'Change Profile Picture',
                   style: GoogleFonts.urbanist(
-                    color: Colors.white,
+                    color: _selectedImageBytes != null ? Colors.green : Colors.white,
                     fontSize: 14,
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.white54),
+                  side: BorderSide(
+                    color: _selectedImageBytes != null ? Colors.green : Colors.white54,
+                  ),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -242,28 +299,78 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context, {
-                        'bio': _bioController.text,
-                        'major': _selectedMajor,
-                        'class': _selectedClass,
-                      });
+                    onPressed: _isUploading ? null : () async {
+                      String? uploadedUrl;
+                      
+                      // Upload image if selected
+                      if (_selectedImageBytes != null) {
+                        setState(() => _isUploading = true);
+                        
+                        try {
+                          uploadedUrl = await UploadService.uploadProfilePicture(
+                            bytes: _selectedImageBytes!,
+                            filename: 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
+                          );
+                          
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Profile picture uploaded!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Upload failed: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            setState(() => _isUploading = false);
+                            return;
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(() => _isUploading = false);
+                          }
+                        }
+                      }
+                      
+                      if (mounted) {
+                        Navigator.pop(context, {
+                          'bio': _bioController.text,
+                          'major': _selectedMajor,
+                          'class': _selectedClass,
+                          'profile_picture': uploadedUrl,
+                        });
+                      }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: _isUploading ? Colors.grey : Colors.blue,
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: Text(
-                      'Save',
-                      style: GoogleFonts.urbanist(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    child: _isUploading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            'Save',
+                            style: GoogleFonts.urbanist(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
                 ],
               ),

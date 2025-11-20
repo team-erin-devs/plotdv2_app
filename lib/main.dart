@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:team_erin_app/screens/home_screen.dart';
 import 'package:team_erin_app/screens/challenges_screen.dart';
 import 'package:team_erin_app/screens/leaderboard_screen.dart';
+import 'package:team_erin_app/screens/ranking_screen.dart';
 import 'package:team_erin_app/screens/login_screen.dart';
 import 'package:team_erin_app/screens/register_screen.dart';
 import 'package:team_erin_app/screens/profile_screen.dart';
@@ -107,10 +108,10 @@ class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-    const HomeScreen(),          // 0 = Home
-    const ChallengesScreen(),    // 1 = Missions
-    const LeaderboardScreen(),   // 2 = Ranking
-    const ProfileScreen(),       // 3 = Profile
+    const HomeScreen(), // 0 = Home
+    const ChallengesScreen(), // 1 = Missions
+    const LeaderboardScreen(), // 2 = Ranking
+    const ProfileScreen(), // 3 = Profile
   ];
 
   void _onItemTapped(int index) {
@@ -122,7 +123,15 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/retro game - profile_ what others see.png'),
+            fit: BoxFit.fitWidth,
+          ),
+        ),
+        child: _pages[_selectedIndex],
+      ),
       bottomNavigationBar: _NeoBottomNavBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,

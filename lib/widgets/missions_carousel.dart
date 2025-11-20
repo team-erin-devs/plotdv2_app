@@ -41,30 +41,26 @@ class _MissionsCarouselState extends State<MissionsCarousel> {
   String _difficultyLabel(dynamic difficulty) {
     if (difficulty == null) return 'N/A';
 
-    // Enum: ChallengeDifficulty.easy -> "Easy"
+    // Enum: ChallengeDifficulty.easy -> "easy"
     if (difficulty is Enum) {
       final n = difficulty.name; // Dart enums expose .name
-      return n.isEmpty ? 'N/A' : n[0].toUpperCase() + n.substring(1);
+      return n.isEmpty ? 'N/A' : n.toLowerCase();
     }
 
-    // String: "ChallengeDifficulty.easy" or "easy" -> "Easy"
+    // String: "ChallengeDifficulty.easy" or "easy" -> "easy"
     if (difficulty is String) {
       final raw = difficulty.trim();
       if (raw.isEmpty) return 'N/A';
       final tail = raw.contains('.') ? raw.split('.').last : raw;
-      final lower = tail.toLowerCase();
-      if (lower == 'easy' || lower == 'medium' || lower == 'hard') {
-        return lower[0].toUpperCase() + lower.substring(1);
-      }
-      return tail[0].toUpperCase() + tail.substring(1);
+      return tail.toLowerCase();
     }
 
     // Int mapping
     if (difficulty is int) {
       switch (difficulty) {
-        case 1: return 'Easy';
-        case 2: return 'Medium';
-        case 3: return 'Hard';
+        case 1: return 'easy';
+        case 2: return 'medium';
+        case 3: return 'hard';
         default: return 'N/A';
       }
     }
@@ -73,8 +69,9 @@ class _MissionsCarouselState extends State<MissionsCarousel> {
     final s = difficulty.toString().trim();
     if (s.isEmpty) return 'N/A';
     final tail = s.contains('.') ? s.split('.').last : s;
-    return tail[0].toUpperCase() + tail.substring(1);
+    return tail.toLowerCase();
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -347,7 +344,7 @@ class _DifficultyPill extends StatelessWidget {
           width: isMain ? 1.2 : 1.0,
           color: Colors.white.withOpacity(0.5),
         ),
-        color: Colors.white.withOpacity(0.08),
+        color: Colors.white.withOpacity(0.00),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -365,7 +362,7 @@ class _DifficultyPill extends StatelessWidget {
             label,
             style: TextStyle(
               fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
               fontSize: isMain ? 16 : 14,
               height: 1.0,
               letterSpacing: isMain ? -0.32 : -0.28,

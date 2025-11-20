@@ -213,4 +213,100 @@ class AuthenticatedApiService {
       throw Exception('Failed to load user proofs: ${response.statusCode}');
     }
   }
+
+  /// Get current user's profile including bio, major, class_year, etc.
+  static Future<Map<String, dynamic>> getUserProfile() async {
+    final response = await authenticatedGet('/api/user/profile/');
+    
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load user profile: ${response.statusCode}');
+    }
+  }
+
+  /// Update current user's profile
+  static Future<Map<String, dynamic>> updateUserProfile({
+    String? bio,
+    String? major,
+    String? classYear,
+    String? profilePicture,
+    String? university,
+  }) async {
+    final Map<String, dynamic> updateData = {};
+    
+    if (bio != null) updateData['bio'] = bio;
+    if (major != null) updateData['major'] = major;
+    if (classYear != null) updateData['class_year'] = classYear;
+    if (profilePicture != null) updateData['profile_picture'] = profilePicture;
+    if (university != null) updateData['university'] = university;
+
+    final headers = await getAuthHeaders();
+    final response = await http.patch(
+      Uri.parse('$baseUrl/api/user/profile/'),
+      headers: headers,
+      body: jsonEncode(updateData),
+    );
+
+    // If unauthorized, try to refresh token and retry
+    if (response.statusCode == 401) {
+      final refreshed = await refreshAccessToken();
+      if (refreshed) {
+        final newHeaders = await getAuthHeaders();
+        final retryResponse = await http.patch(
+          Uri.parse('$baseUrl/api/user/profile/'),
+          headers: newHeaders,
+          body: jsonEncode(updateData),
+        );
+        
+        if (retryResponse.statusCode == 200) {
+          return jsonDecode(retryResponse.body);
+        } else {
+          throw Exception('Failed to update profile: ${retryResponse.statusCode}');
+        }
+      }
+    }
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to update profile: ${response.statusCode} - ${response.body}');
+    }
+  }
+
+  /// Get presigned URL for profile picture upload
+  static Future<Map<String, dynamic>> getProfilePicturePresignedUrl({
+    required String filename,
+  }) async {
+    final headers = await getAuthHeaders();
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/profile-picture/presign/'),
+      headers: headers,
+      body: jsonEncode({'filename': filename}),
+    );
+
+    if (response.statusCode == 401) {
+      final refreshed = await refreshAccessToken();
+      if (refreshed) {
+        final newHeaders = await getAuthHeaders();
+        final retryResponse = await http.post(
+          Uri.parse('$baseUrl/api/profile-picture/presign/'),
+          headers: newHeaders,
+          body: jsonEncode({'filename': filename}),
+        );
+        
+        if (retryResponse.statusCode == 200) {
+          return jsonDecode(retryResponse.body);
+        } else {
+          throw Exception('Failed to get presigned URL: ${retryResponse.statusCode}');
+        }
+      }
+    }
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to get presigned URL: ${response.statusCode} - ${response.body}');
+    }
+  }
 }

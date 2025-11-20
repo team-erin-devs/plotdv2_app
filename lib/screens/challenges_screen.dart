@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/challenge.dart';
 import '../models/user_profile.dart';
+import '../models/season.dart';
 import '../services/api_service.dart';
 import '../widgets/mission_card.dart';
 
@@ -14,18 +16,68 @@ class ChallengesScreen extends StatefulWidget {
 class _ChallengesScreenState extends State<ChallengesScreen> {
   late Future<List<Challenge>> _challengesFuture;
   late Future<UserProfile> _userFuture;
+  Season? _season;
+  bool _isLoadingSeason = true;
+  Timer? _countdownTimer;
+  double _localTimeRemaining = 0;
 
   @override
   void initState() {
     super.initState();
     _challengesFuture = ApiService.fetchChallenge();
     _userFuture = ApiService.fetchUserProfile();
+    _loadSeason();
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadSeason() async {
+    try {
+      final season = await ApiService.fetchSeason();
+      setState(() {
+        _season = season;
+        _localTimeRemaining = season.timeRemaining;
+        _isLoadingSeason = false;
+      });
+      _startCountdown();
+    } catch (e) {
+      setState(() {
+        _isLoadingSeason = false;
+      });
+    }
+  }
+
+  void _startCountdown() {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_localTimeRemaining > 0) {
+        setState(() {
+          _localTimeRemaining--;
+        });
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  String _getTimeRemaining() {
+    if (_localTimeRemaining <= 0) return 'Season ended';
+
+    final duration = Duration(seconds: _localTimeRemaining.toInt());
+    final days = duration.inDays;
+    final hours = duration.inHours % 24;
+    final minutes = duration.inMinutes % 60;
+
+    return '${days}d ${hours}h ${minutes}m';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         child: FutureBuilder<UserProfile>(
           future: _userFuture,
@@ -84,7 +136,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'You have ${challenges.length} missions remaining this week',
+                        'You have ${challenges.length} missions remaining this season',
                         style: TextStyle(
                           fontFamily: 'Urbanist',
                           fontWeight: FontWeight.w500,
@@ -118,7 +170,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
                               gradient: gradient,
                               points: c.points,
                               challenge: c,
-                              // timeRemaining: c.timeRemaining ?? 'N/A',
+                              timeRemaining: _isLoadingSeason ? '...' : _getTimeRemaining(), // Pass the timer
                             ),
                           );
                         }).toList(),

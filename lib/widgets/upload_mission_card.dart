@@ -8,6 +8,7 @@ class UploadMissionCard extends StatelessWidget {
   final int points;
   final List<Color> gradient;
   final Widget uploadSection;
+  final String timeRemaining; // Added this parameter
 
   const UploadMissionCard({
     super.key,
@@ -17,6 +18,7 @@ class UploadMissionCard extends StatelessWidget {
     required this.points,
     required this.gradient,
     required this.uploadSection,
+    required this.timeRemaining, // Added this parameter
   });
 
   String _difficultyLabel(ChallengeDifficulty difficulty) {
@@ -110,9 +112,9 @@ class UploadMissionCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      const Text(
-                        '0d 22h 33m 45s',
-                        style: TextStyle(
+                      Text(
+                        timeRemaining, // Use the passed timer value
+                        style: const TextStyle(
                           fontFamily: 'Urbanist',
                           fontWeight: FontWeight.w700,
                           fontSize: 24,

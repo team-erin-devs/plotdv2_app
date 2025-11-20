@@ -69,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       const SizedBox(height: 100),
 
-                      // Logo (Ploit*)
+                      // Logo (Plotd*)
                       Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,

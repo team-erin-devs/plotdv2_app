@@ -15,14 +15,16 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _userStats;
   Map<String, dynamic>? _userInfo;
+  Map<String, dynamic>? _userProfile;
   List<dynamic>? _completedProofs;
   bool _isLoading = true;
   String? _error;
   
-  // User editable fields
-  String _userBio = 'trying to figure life out 🏆✨\ntech | fitness | lifestyle';
-  String _userMajor = 'Commerce';
-  String _userClass = 'Class of \'27';
+  // User editable fields (loaded from backend)
+  String _userBio = '';
+  String _userMajor = '';
+  String _userClass = '';
+  String _profilePictureUrl = '';
 
   @override
   void initState() {
@@ -37,15 +39,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      // Load user stats, info, and completed proofs in parallel
+      // Load user stats, info, profile, and completed proofs in parallel
       final stats = await AuthenticatedApiService.getUserStats();
       final info = await AuthenticatedApiService.getCurrentUser();
+      final profile = await AuthenticatedApiService.getUserProfile();
       final proofs = await AuthenticatedApiService.getUserProofs();
       
       setState(() {
         _userStats = stats;
         _userInfo = info;
+        _userProfile = profile;
         _completedProofs = proofs.where((p) => p['status'] == 'approved').toList();
+        
+        // Load profile fields from backend
+        _userBio = profile['bio'] ?? 'No bio yet';
+        _userMajor = profile['major'] ?? 'Not specified';
+        _userClass = profile['class_year'] ?? 'Not specified';
+        _profilePictureUrl = profile['profile_picture'] ?? '';
+        
         _isLoading = false;
       });
     } catch (e) {
@@ -78,22 +89,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
         currentBio: _userBio,
         currentMajor: _userMajor,
         currentClass: _userClass,
+        currentProfilePictureUrl: _profilePictureUrl,
       ),
     );
     
     if (result != null) {
-      setState(() {
-        _userBio = result['bio'] ?? _userBio;
-        _userMajor = result['major'] ?? _userMajor;
-        _userClass = result['class'] ?? _userClass;
-      });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile updated!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      try {
+        // Call API to update profile
+        final updatedProfile = await AuthenticatedApiService.updateUserProfile(
+          bio: result['bio'],
+          major: result['major'],
+          classYear: result['class'],
+          profilePicture: result['profile_picture'],
+        );
+        
+        setState(() {
+          _userProfile = updatedProfile;
+          _userBio = updatedProfile['bio'] ?? 'No bio yet';
+          _userMajor = updatedProfile['major'] ?? 'Not specified';
+          _userClass = updatedProfile['class_year'] ?? 'Not specified';
+          _profilePictureUrl = updatedProfile['profile_picture'] ?? '';
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile updated!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update profile: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -104,6 +139,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) => ViewIDCard(
         username: username,
         handle: '@${username.toLowerCase()}',
+        profilePictureUrl: _profilePictureUrl,
       ),
     );
   }
@@ -111,7 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF000000), // Pure black background
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         child: _isLoading
             ? const Center(
@@ -159,156 +195,167 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadProfileData,
-      color: Colors.blue,
-      backgroundColor: Colors.white,
+      color: const Color(0xFF4FC3F7),
+      backgroundColor: Colors.black,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: Column(
           children: [
-            // Profile Header Section
+            // Profile Header Section - All Black Background
             Container(
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(40),
-                  bottomRight: Radius.circular(40),
-                ),
-                color: Colors.grey[900],
-              ),
-              padding: const EdgeInsets.fromLTRB(20, 30, 20, 30),
+              color: Colors.black,
+              padding: const EdgeInsets.fromLTRB(20, 30, 20, 20),
               child: Column(
                 children: [
-                  // Profile Picture
-                  CircleAvatar(
-                    radius: 60,
-                    backgroundColor: Colors.grey[800],
-                    child: Text(
-                      username[0].toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
+                  // Profile Picture and Info Row
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Profile Picture on the left
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.grey[800],
+                        backgroundImage: _profilePictureUrl.isNotEmpty
+                            ? NetworkImage(_profilePictureUrl)
+                            : null,
+                        child: _profilePictureUrl.isEmpty
+                            ? Icon(Icons.person, size: 50, color: Colors.grey[600])
+                            : null,
                       ),
-                    ),
+                      
+                      const SizedBox(width: 16),
+                      
+                      // Username, Handle, and Bio on the right
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Username
+                            Text(
+                              username,
+                              style: GoogleFonts.epilogue(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            
+                            const SizedBox(height: 4),
+                            
+                            // Handle
+                            Text(
+                              '@${username.toLowerCase()}',
+                              style: GoogleFonts.urbanist(
+                                color: Colors.grey[500],
+                                fontSize: 14,
+                              ),
+                            ),
+                            
+                            const SizedBox(height: 12),
+                            
+                            // Bio
+                            Text(
+                              _userBio,
+                              style: GoogleFonts.urbanist(
+                                color: Colors.grey[300],
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   
                   const SizedBox(height: 20),
                   
-                  // Username
-                  Text(
-                    username,
-                    style: GoogleFonts.epilogue(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 4),
-                  
-                  // Handle
-                  Text(
-                    '@${username.toLowerCase()}',
-                    style: GoogleFonts.urbanist(
-                      color: Colors.grey[400],
-                      fontSize: 16,
+                  // University - Centered
+                  Center(
+                    child: Text(
+                      'queensu 🎓🏫',
+                      style: GoogleFonts.urbanist(
+                        color: Colors.grey[400],
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                   
                   const SizedBox(height: 16),
                   
-                  // Bio
-                  Text(
-                    _userBio,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.urbanist(
-                      color: Colors.grey[300],
-                      fontSize: 14,
-                      height: 1.5,
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  // University
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Center(
-                      child: Text(
-                        'queensu 🎓🏫',
-                        style: GoogleFonts.urbanist(
-                          color: Colors.white,
-                          fontSize: 14,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
+                  // Rank, Major, Class badges
+                  Wrap(
+                    alignment: WrapAlignment.start,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildBadge('Rank #$leaderboardPosition', Colors.red),
+                      _buildBadge(_userMajor, Colors.blue),
+                      _buildBadge(_userClass, Colors.purple),
+                    ],
                   ),
                   
                   const SizedBox(height: 20),
                   
-                  // Rank, Major, Class badges
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 8,
-                      runSpacing: 8,
+                  // Edit Profile and View ID buttons with gradient background
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.grey[900]!.withOpacity(0.3),
+                          Colors.grey[900]!.withOpacity(0.1),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
                       children: [
-                        _buildBadge('Rank #$leaderboardPosition', Colors.red),
-                        _buildBadge(_userMajor, Colors.blue),
-                        _buildBadge(_userClass, Colors.purple),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _editProfile,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: BorderSide(color: Colors.grey[700]!, width: 1),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              'Edit profile',
+                              style: GoogleFonts.urbanist(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _viewID,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: BorderSide(color: Colors.white, width: 1.5),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            child: Text(
+                              'View ID',
+                              style: GoogleFonts.urbanist(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Edit Profile and View ID buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _editProfile,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.white, width: 1.5),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Edit profile',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _viewID,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.white, width: 1.5),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'View ID',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
@@ -394,14 +441,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
         border: Border.all(color: color, width: 1.5),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Text(
-        text,
-        style: GoogleFonts.urbanist(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.2,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: GoogleFonts.urbanist(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -412,6 +473,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   List<Widget> _buildBadgeIcons(int completed, int points) {
+    // Don't show any badges if user hasn't earned any
+    if (completed == 0 && points == 0) {
+      return [
+        Container(
+          padding: const EdgeInsets.all(20),
+          child: Text(
+            'Complete challenges to earn badges!',
+            style: GoogleFonts.urbanist(
+              color: Colors.grey[600],
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ];
+    }
+    
     // Colorful gradient badges - always show 5 with different colors
     final badgeData = [
       {
@@ -466,8 +543,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildMissionGrid() {
-    // Show sample mission placeholders (always show 6 items for demo)
-    final sampleMissions = List.generate(6, (index) => index);
+    // If no completed proofs, show empty state
+    if (_completedProofs == null || _completedProofs!.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          children: [
+            Icon(Icons.photo_library_outlined, size: 64, color: Colors.grey[700]),
+            const SizedBox(height: 16),
+            Text(
+              'No completed missions yet',
+              style: GoogleFonts.urbanist(
+                color: Colors.grey[600],
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Complete challenges to see them here!',
+              style: GoogleFonts.urbanist(
+                color: Colors.grey[700],
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
     
     // Create a grid of mission images (3 columns, 2 rows)
     return GridView.builder(
@@ -479,29 +582,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
         mainAxisSpacing: 6,
         childAspectRatio: 1,
       ),
-      itemCount: 6,
+      itemCount: _completedProofs!.length,
       itemBuilder: (context, index) {
-        // Check if we have real proofs
-        if (_completedProofs != null && index < _completedProofs!.length) {
-          final proof = _completedProofs![index];
-          final fileUrl = proof['file'] as String?;
-          
-          if (fileUrl != null && fileUrl.isNotEmpty) {
-            return ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                fileUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return _buildPlaceholderMission(index);
-                },
-              ),
-            );
-          }
+        final proof = _completedProofs![index];
+        final fileUrl = proof['file'] as String?;
+        
+        if (fileUrl != null && fileUrl.isNotEmpty) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              fileUrl,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                          : null,
+                      color: const Color(0xFF4FC3F7),
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.broken_image, color: Colors.grey[700]),
+                );
+              },
+            ),
+          );
         }
         
-        // Show sample placeholder
-        return _buildPlaceholderMission(index);
+        // If no file URL, show placeholder
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[900],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(Icons.image_not_supported, color: Colors.grey[700]),
+        );
       },
     );
   }
