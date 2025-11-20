@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import '../models/challenge.dart';
-import '../services/upload_service.dart'; // make sure path matches your project
+import '../models/season.dart';
+import '../services/upload_service.dart';
+import '../services/api_service.dart';
+import '../widgets/upload_mission_card.dart';
 
 class ChallengeDetailScreen extends StatefulWidget {
   final Challenge challenge;
@@ -14,41 +18,109 @@ class ChallengeDetailScreen extends StatefulWidget {
 }
 
 class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
-  final List<_SelectedImage> _images = [];
-  final ImagePicker _picker = ImagePicker();
+  final List<_SelectedFile> _files = [];
   bool _isUploading = false;
+  Season? _season;
+  bool _isLoadingSeason = true;
+  Timer? _countdownTimer;
+  double _localTimeRemaining = 0;
 
-  Future<void> _pickImage() async {
+  @override
+  void initState() {
+    super.initState();
+    _loadSeason();
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadSeason() async {
     try {
-      final XFile? picked = await _picker.pickImage(
-        source: ImageSource.gallery,
+      final season = await ApiService.fetchSeason();
+      setState(() {
+        _season = season;
+        _localTimeRemaining = season.timeRemaining;
+        _isLoadingSeason = false;
+      });
+      _startCountdown();
+    } catch (e) {
+      setState(() {
+        _isLoadingSeason = false;
+      });
+    }
+  }
+
+  void _startCountdown() {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_localTimeRemaining > 0) {
+        setState(() {
+          _localTimeRemaining--;
+        });
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  String _getTimeRemaining() {
+    if (_localTimeRemaining <= 0) return 'Season ended';
+
+    final duration = Duration(seconds: _localTimeRemaining.toInt());
+    final days = duration.inDays;
+    final hours = duration.inHours % 24;
+    final minutes = duration.inMinutes % 60;
+
+    return '${days}d ${hours}h ${minutes}m';
+  }
+
+  bool get _isSeasonActive => _localTimeRemaining > 0;
+
+  Future<void> _pickFile() async {
+    if (!_isSeasonActive) {
+      _showSnack("Season has ended. No more uploads allowed.");
+      return;
+    }
+
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: [
+          'jpg',
+          'jpeg',
+          'png',
+          'gif',
+          'mp4',
+          'mov',
+          'avi',
+          'pdf',
+        ],
+        allowMultiple: false,
+        withData: true,
       );
-      if (picked != null) {
-        final bytes = await picked.readAsBytes();
-        setState(
-          () => _images.add(_SelectedImage(bytes: bytes, name: picked.name)),
-        );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        if (file.bytes != null) {
+          setState(
+            () => _files.add(
+              _SelectedFile(
+                bytes: file.bytes!,
+                name: file.name,
+                extension: file.extension ?? '',
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
-      _showSnack('Error picking image: $e');
+      _showSnack('Error picking file: $e');
     }
   }
 
-  Future<void> _takePhoto() async {
-    try {
-      final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
-      if (photo != null) {
-        final bytes = await photo.readAsBytes();
-        setState(
-          () => _images.add(_SelectedImage(bytes: bytes, name: photo.name)),
-        );
-      }
-    } catch (e) {
-      _showSnack('Error taking photo: $e');
-    }
-  }
-
-  void _removeImage(int index) => setState(() => _images.removeAt(index));
+  void _removeFile(int index) => setState(() => _files.removeAt(index));
 
   void _showSnack(String msg) {
     if (!mounted) return;
@@ -57,24 +129,29 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
     );
   }
 
-  Future<void> _uploadImages() async {
-    if (_images.isEmpty) {
-      _showSnack("Please select at least one image before uploading.");
+  Future<void> _uploadFiles() async {
+    if (!_isSeasonActive) {
+      _showSnack("Season has ended. No more uploads allowed.");
+      return;
+    }
+
+    if (_files.isEmpty) {
+      _showSnack("Please select at least one file before uploading.");
       return;
     }
 
     setState(() => _isUploading = true);
 
     try {
-      for (final img in _images) {
+      for (final file in _files) {
         await UploadService.uploadProof(
-          bytes: img.bytes,
-          filename: img.name,
+          bytes: file.bytes,
+          filename: file.name,
           challengeId: widget.challenge.id,
         );
       }
       _showSnack("Upload successful!");
-      setState(() => _images.clear());
+      setState(() => _files.clear());
     } catch (e) {
       _showSnack("Upload failed: $e");
     } finally {
@@ -82,218 +159,290 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
     }
   }
 
-  Color _getDifficultyColor() {
+  Widget _buildFileThumbnail(_SelectedFile file) {
+    if (['jpg', 'jpeg', 'png', 'gif'].contains(file.extension.toLowerCase())) {
+      return Image.memory(
+        file.bytes,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+      );
+    }
+
+    IconData icon;
+    Color color;
+
+    if (['mp4', 'mov', 'avi'].contains(file.extension.toLowerCase())) {
+      icon = Icons.videocam;
+      color = Colors.purple;
+    } else if (file.extension.toLowerCase() == 'pdf') {
+      icon = Icons.picture_as_pdf;
+      color = Colors.red;
+    } else {
+      icon = Icons.insert_drive_file;
+      color = Colors.blue;
+    }
+
+    return Container(
+      color: Colors.grey[900],
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 48, color: color),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              file.name,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Color> _getGradient() {
     switch (widget.challenge.difficulty) {
       case ChallengeDifficulty.easy:
-        return Colors.greenAccent;
+        return [const Color(0xFF23B2CA), const Color(0xFF126C87)];
       case ChallengeDifficulty.medium:
-        return Colors.amberAccent;
+        return [const Color(0xFFA621ED), const Color(0xFF5E1387)];
       case ChallengeDifficulty.hard:
-        return Colors.redAccent;
+        return [const Color(0xFFED2190), const Color(0xFF871352)];
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final gradient = _getGradient();
+    final accent = gradient.first;
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        centerTitle: true,
         elevation: 0,
-        title: Text(
-          widget.challenge.title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(2),
-          child: Container(color: _getDifficultyColor(), height: 2),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.challenge.description,
-              style: const TextStyle(fontSize: 14, color: Colors.white70),
-            ),
-            const SizedBox(height: 24),
-
-            // Buttons
-            Row(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: UploadMissionCard(
+            title: widget.challenge.title,
+            description: widget.challenge.description,
+            difficulty: widget.challenge.difficulty,
+            points: widget.challenge.points,
+            gradient: gradient,
+            timeRemaining: _isLoadingSeason ? '...' : _getTimeRemaining(),
+            uploadSection: Column(
               children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _pickImage,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _getDifficultyColor(),
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                // Season ended message
+                if (!_isSeasonActive && !_isLoadingSeason)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.red.withOpacity(0.5),
+                        width: 1,
                       ),
                     ),
-                    child: const Text(
-                      "GALLERY",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _takePhoto,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _getDifficultyColor(),
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text(
-                      "CAMERA",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.red.shade300, size: 24),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Season has ended. Uploads are no longer accepted.',
+                            style: TextStyle(
+                              fontFamily: 'Urbanist',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.red.shade300,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
 
-            // Image previews
-            if (_images.isNotEmpty)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "SELECTED IMAGES",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: _getDifficultyColor(),
+                // Upload area with border
+                Container(
+                  width: double.infinity,
+                  constraints: const BoxConstraints(minHeight: 300),
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: _isSeasonActive 
+                          ? Colors.white.withOpacity(0.3)
+                          : Colors.grey.withOpacity(0.2),
+                      width: 2,
                     ),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  const SizedBox(height: 12),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
+                  child: Column(
+                    children: [
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
                         ),
-                    itemCount: _images.length,
-                    itemBuilder: (context, index) {
-                      final img = _images[index];
-                      return Stack(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: _getDifficultyColor(),
-                                width: 2,
+                        itemCount: _files.length,
+                        itemBuilder: (context, index) {
+                          final file = _files[index];
+                          return Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: _buildFileThumbnail(file),
                               ),
-                            ),
-                            child: Image.memory(img.bytes, fit: BoxFit.cover),
-                          ),
-                          Positioned(
-                            top: 2,
-                            right: 2,
-                            child: Container(
-                              color: Colors.redAccent,
-                              child: IconButton(
-                                icon: const Icon(Icons.close, size: 16),
-                                color: Colors.black,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                onPressed: () => _removeImage(index),
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: GestureDetector(
+                                  onTap: () => _removeFile(index),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.close,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
                               ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 84),
+
+                      // Upload file button (lighter color, inside the border)
+                      SizedBox(
+                        width: 250,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isSeasonActive ? _pickFile : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _isSeasonActive 
+                                ? Colors.white.withOpacity(0.8)
+                                : Colors.grey.withOpacity(0.3),
+                            foregroundColor: accent,
+                            disabledBackgroundColor: Colors.grey.withOpacity(0.3),
+                            disabledForegroundColor: Colors.grey.shade600,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                        ],
-                      );
-                    },
-                  ),
-                ],
-              )
-            else
-              Center(
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.image_outlined,
-                      size: 48,
-                      color: Colors.grey[700],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "NO IMAGES YET",
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-
-            const SizedBox(height: 24),
-
-            // Upload button
-            Center(
-              child: ElevatedButton(
-                onPressed: _isUploading ? null : _uploadImages,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _getDifficultyColor(),
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                    horizontal: 40,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isUploading
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          color: Colors.black,
-                          strokeWidth: 2.5,
-                        ),
-                      )
-                    : const Text(
-                        "UPLOAD",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'upload file',
+                                style: TextStyle(
+                                  fontFamily: 'Urbanist',
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 18,
+                                  color: _isSeasonActive ? accent : Colors.grey.shade600,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                Icons.arrow_upward, 
+                                size: 24, 
+                                color: _isSeasonActive ? accent : Colors.grey.shade600,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-              ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Submit proof button (white background, outside the border)
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: (_isUploading || !_isSeasonActive) ? null : _uploadFiles,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: accent,
+                      disabledBackgroundColor: Colors.grey[800],
+                      disabledForegroundColor: Colors.grey.shade600,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: _isUploading
+                        ? SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: accent,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Submit proof',
+                                style: TextStyle(
+                                  fontFamily: 'Urbanist',
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 20,
+                                  color: _isSeasonActive ? accent : Colors.grey.shade600,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Icon(
+                                Icons.arrow_forward,
+                                size: 24,
+                                color: _isSeasonActive ? accent : Colors.grey.shade600,
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Helper class to store image bytes + original filename
-class _SelectedImage {
+class _SelectedFile {
   final Uint8List bytes;
   final String name;
-  _SelectedImage({required this.bytes, required this.name});
+  final String extension;
+  _SelectedFile({
+    required this.bytes,
+    required this.name,
+    required this.extension,
+  });
 }

@@ -28,7 +28,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF000000),
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         child: FutureBuilder<List<LeaderboardEntry>>(
           future: _leaderboardFuture,
