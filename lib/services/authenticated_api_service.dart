@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Base class for making authenticated API calls
 class AuthenticatedApiService {
-  static const String baseUrl = 'http://localhost:8000';
+  static const String baseUrl = 'http://147.182.145.237:8000';
 
   /// Get the stored access token
   static Future<String?> getAccessToken() async {
@@ -174,7 +174,7 @@ class AuthenticatedApiService {
   /// Get current user's stats
   static Future<Map<String, dynamic>> getUserStats() async {
     final response = await authenticatedGet('/api/user/stats/');
-    
+
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
@@ -188,18 +188,18 @@ class AuthenticatedApiService {
     // For now, we'll decode it from the user info in local storage
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString('user_info');
-    
+
     if (userJson != null) {
       return jsonDecode(userJson);
     }
-    
+
     throw Exception('User information not found. Please log in again.');
   }
 
   /// Get current user's proof submissions
   static Future<List<dynamic>> getUserProofs() async {
     final response = await authenticatedGet('/api/proofs/');
-    
+
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       // Handle both array response and paginated response
