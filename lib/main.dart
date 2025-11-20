@@ -6,6 +6,8 @@ import 'package:team_erin_app/screens/leaderboard_screen.dart';
 import 'package:team_erin_app/screens/login_screen.dart';
 import 'package:team_erin_app/screens/register_screen.dart';
 import 'package:team_erin_app/screens/profile_screen.dart';
+import 'package:team_erin_app/screens/welcome_screen.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -34,8 +36,9 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: false, // retro vibe
       ),
-      initialRoute: '/login',
+      initialRoute: '/welcome',
       routes: {
+        '/welcome': (context) => const WelcomeScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/home': (context) => const MainNavigation(),
