@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/challenge.dart';
+import '../models/season.dart';
 import '../services/upload_service.dart';
+import '../services/api_service.dart';
 import '../widgets/upload_mission_card.dart';
 
 class ChallengeDetailScreen extends StatefulWidget {
@@ -17,8 +20,70 @@ class ChallengeDetailScreen extends StatefulWidget {
 class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
   final List<_SelectedFile> _files = [];
   bool _isUploading = false;
+  Season? _season;
+  bool _isLoadingSeason = true;
+  Timer? _countdownTimer;
+  double _localTimeRemaining = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSeason();
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadSeason() async {
+    try {
+      final season = await ApiService.fetchSeason();
+      setState(() {
+        _season = season;
+        _localTimeRemaining = season.timeRemaining;
+        _isLoadingSeason = false;
+      });
+      _startCountdown();
+    } catch (e) {
+      setState(() {
+        _isLoadingSeason = false;
+      });
+    }
+  }
+
+  void _startCountdown() {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_localTimeRemaining > 0) {
+        setState(() {
+          _localTimeRemaining--;
+        });
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  String _getTimeRemaining() {
+    if (_localTimeRemaining <= 0) return 'Season ended';
+
+    final duration = Duration(seconds: _localTimeRemaining.toInt());
+    final days = duration.inDays;
+    final hours = duration.inHours % 24;
+    final minutes = duration.inMinutes % 60;
+
+    return '${days}d ${hours}h ${minutes}m';
+  }
+
+  bool get _isSeasonActive => _localTimeRemaining > 0;
 
   Future<void> _pickFile() async {
+    if (!_isSeasonActive) {
+      _showSnack("Season has ended. No more uploads allowed.");
+      return;
+    }
+
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -65,6 +130,11 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
   }
 
   Future<void> _uploadFiles() async {
+    if (!_isSeasonActive) {
+      _showSnack("Season has ended. No more uploads allowed.");
+      return;
+    }
+
     if (_files.isEmpty) {
       _showSnack("Please select at least one file before uploading.");
       return;
@@ -152,7 +222,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
     final accent = gradient.first;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
@@ -171,8 +241,42 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
             difficulty: widget.challenge.difficulty,
             points: widget.challenge.points,
             gradient: gradient,
+            timeRemaining: _isLoadingSeason ? '...' : _getTimeRemaining(),
             uploadSection: Column(
               children: [
+                // Season ended message
+                if (!_isSeasonActive && !_isLoadingSeason)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.red.withOpacity(0.5),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.red.shade300, size: 24),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Season has ended. Uploads are no longer accepted.',
+                            style: TextStyle(
+                              fontFamily: 'Urbanist',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.red.shade300,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                 // Upload area with border
                 Container(
                   width: double.infinity,
@@ -180,7 +284,9 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                   padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
+                      color: _isSeasonActive 
+                          ? Colors.white.withOpacity(0.3)
+                          : Colors.grey.withOpacity(0.2),
                       width: 2,
                     ),
                     borderRadius: BorderRadius.circular(20),
@@ -192,10 +298,10 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                            ),
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
                         itemCount: _files.length,
                         itemBuilder: (context, index) {
                           final file = _files[index];
@@ -235,10 +341,14 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                         width: 250,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: _pickFile,
+                          onPressed: _isSeasonActive ? _pickFile : null,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white.withOpacity(0.8),
+                            backgroundColor: _isSeasonActive 
+                                ? Colors.white.withOpacity(0.8)
+                                : Colors.grey.withOpacity(0.3),
                             foregroundColor: accent,
+                            disabledBackgroundColor: Colors.grey.withOpacity(0.3),
+                            disabledForegroundColor: Colors.grey.shade600,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -253,11 +363,15 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                                   fontFamily: 'Urbanist',
                                   fontWeight: FontWeight.w500,
                                   fontSize: 18,
-                                  color: accent,
+                                  color: _isSeasonActive ? accent : Colors.grey.shade600,
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Icon(Icons.arrow_upward, size: 24, color: accent),
+                              Icon(
+                                Icons.arrow_upward, 
+                                size: 24, 
+                                color: _isSeasonActive ? accent : Colors.grey.shade600,
+                              ),
                             ],
                           ),
                         ),
@@ -272,11 +386,12 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: _isUploading ? null : _uploadFiles,
+                    onPressed: (_isUploading || !_isSeasonActive) ? null : _uploadFiles,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: accent,
                       disabledBackgroundColor: Colors.grey[800],
+                      disabledForegroundColor: Colors.grey.shade600,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -299,14 +414,14 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                                   fontFamily: 'Urbanist',
                                   fontWeight: FontWeight.w500,
                                   fontSize: 20,
-                                  color: accent,
+                                  color: _isSeasonActive ? accent : Colors.grey.shade600,
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Icon(
                                 Icons.arrow_forward,
                                 size: 24,
-                                color: accent,
+                                color: _isSeasonActive ? accent : Colors.grey.shade600,
                               ),
                             ],
                           ),
