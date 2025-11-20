@@ -27,9 +27,10 @@ class AuthService {
     if (response.statusCode == 201) {
       final data = jsonDecode(response.body);
 
-      // ✅ Django returns access_token and refresh_token at root level
-      final accessToken = data['access_token'];
-      final refreshToken = data['refresh_token'];
+      // ✅ Django returns tokens inside a 'tokens' object
+      final tokens = data['tokens'];
+      final accessToken = tokens?['access'];
+      final refreshToken = tokens?['refresh'];
       final user = data['user'];
 
       if (accessToken != null && refreshToken != null) {
@@ -43,7 +44,7 @@ class AuthService {
           await prefs.setString('user_info', jsonEncode(user));
         }
 
-        print('✅ Tokens saved successfully!');
+        print('✅ Registration tokens saved successfully!');
       }
 
       return data;
@@ -65,9 +66,10 @@ class AuthService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
-      // ✅ Django returns access_token and refresh_token at root level
-      final accessToken = data['access_token'];
-      final refreshToken = data['refresh_token'];
+      // ✅ Django returns tokens inside a 'tokens' object
+      final tokens = data['tokens'];
+      final accessToken = tokens?['access'];
+      final refreshToken = tokens?['refresh'];
       final user = data['user'];
 
       if (accessToken != null && refreshToken != null) {
@@ -81,7 +83,7 @@ class AuthService {
           await prefs.setString('user_info', jsonEncode(user));
         }
 
-        print('✅ Tokens saved successfully!');
+        print('✅ Login tokens saved successfully!');
       }
 
       return data;
