@@ -27,10 +27,8 @@ class AuthService {
     if (response.statusCode == 201) {
       final data = jsonDecode(response.body);
 
-      // ✅ Django returns tokens inside a 'tokens' object
-      final tokens = data['tokens'];
-      final accessToken = tokens?['access'];
-      final refreshToken = tokens?['refresh'];
+      final accessToken = data['access_token'];
+      final refreshToken = data['refresh_token'];
       final user = data['user'];
 
       if (accessToken != null && refreshToken != null) {
@@ -67,9 +65,8 @@ class AuthService {
       final data = jsonDecode(response.body);
 
       // ✅ Django returns tokens inside a 'tokens' object
-      final tokens = data['tokens'];
-      final accessToken = tokens?['access'];
-      final refreshToken = tokens?['refresh'];
+      final accessToken = data['access_token'];
+      final refreshToken = data['refresh_token'];
       final user = data['user'];
 
       if (accessToken != null && refreshToken != null) {
