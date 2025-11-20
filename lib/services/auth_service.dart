@@ -96,4 +96,11 @@ class AuthService {
     await prefs.remove('refresh_token');
     await prefs.remove('user_info');
   }
+
+  static Future<bool> isAuthenticated() async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('access_token');
+  return token != null && token.isNotEmpty;
+}
+
 }
