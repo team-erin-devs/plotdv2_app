@@ -217,7 +217,7 @@ class AuthenticatedApiService {
   /// Get current user's profile including bio, major, class_year, etc.
   static Future<Map<String, dynamic>> getUserProfile() async {
     final response = await authenticatedGet('/api/user/profile/');
-    
+
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
@@ -234,7 +234,7 @@ class AuthenticatedApiService {
     String? university,
   }) async {
     final Map<String, dynamic> updateData = {};
-    
+
     if (bio != null) updateData['bio'] = bio;
     if (major != null) updateData['major'] = major;
     if (classYear != null) updateData['class_year'] = classYear;
@@ -258,11 +258,13 @@ class AuthenticatedApiService {
           headers: newHeaders,
           body: jsonEncode(updateData),
         );
-        
+
         if (retryResponse.statusCode == 200) {
           return jsonDecode(retryResponse.body);
         } else {
-          throw Exception('Failed to update profile: ${retryResponse.statusCode}');
+          throw Exception(
+            'Failed to update profile: ${retryResponse.statusCode}',
+          );
         }
       }
     }
@@ -270,7 +272,9 @@ class AuthenticatedApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to update profile: ${response.statusCode} - ${response.body}');
+      throw Exception(
+        'Failed to update profile: ${response.statusCode} - ${response.body}',
+      );
     }
   }
 
@@ -294,11 +298,13 @@ class AuthenticatedApiService {
           headers: newHeaders,
           body: jsonEncode({'filename': filename}),
         );
-        
+
         if (retryResponse.statusCode == 200) {
           return jsonDecode(retryResponse.body);
         } else {
-          throw Exception('Failed to get presigned URL: ${retryResponse.statusCode}');
+          throw Exception(
+            'Failed to get presigned URL: ${retryResponse.statusCode}',
+          );
         }
       }
     }
@@ -306,7 +312,9 @@ class AuthenticatedApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to get presigned URL: ${response.statusCode} - ${response.body}');
+      throw Exception(
+        'Failed to get presigned URL: ${response.statusCode} - ${response.body}',
+      );
     }
   }
 }

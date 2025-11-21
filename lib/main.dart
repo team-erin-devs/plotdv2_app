@@ -11,7 +11,6 @@ import 'package:team_erin_app/screens/welcome_screen.dart';
 import 'package:team_erin_app/widgets/auth_guard.dart';
 import 'services/auth_service.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -19,7 +18,6 @@ void main() async {
 
   runApp(MyApp(loggedIn: loggedIn));
 }
-
 
 class MyApp extends StatelessWidget {
   final bool loggedIn;
@@ -46,15 +44,16 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: false, // retro vibe
       ),
-      home: const AuthSplashScreen(), // Start with splash screen that checks auth
-        routes: {
-          '/welcome': (context) => const WelcomeScreen(),
-          '/login': (context) => const LoginScreen(),
-          '/register': (context) => const RegisterScreen(),
-          '/home': (context) => AuthGuard(child: const MainNavigation()),
-          '/challenges': (context) => AuthGuard(child: const ChallengesScreen()),
-          '/challenges/detail': (context) => AuthGuard(child: const ChallengesScreen()),
-        },
+      home:
+          const AuthSplashScreen(), // Start with splash screen that checks auth
+      routes: {
+        '/welcome': (context) => const WelcomeScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/home': (context) => MainNavigation(),
+        '/challenges': (context) => ChallengesScreen(),
+        '/challenges/detail': (context) => ChallengesScreen(),
+      },
     );
   }
 }
@@ -75,9 +74,9 @@ class _AuthSplashScreenState extends State<AuthSplashScreen> {
 
   Future<void> _checkAuthAndNavigate() async {
     final isAuth = await AuthService.isAuthenticated();
-    
+
     if (!mounted) return;
-    
+
     if (isAuth) {
       Navigator.of(context).pushReplacementNamed('/home');
     } else {
@@ -89,9 +88,7 @@ class _AuthSplashScreenState extends State<AuthSplashScreen> {
   Widget build(BuildContext context) {
     return const Scaffold(
       backgroundColor: Colors.black,
-      body: Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      ),
+      body: Center(child: CircularProgressIndicator(color: Colors.white)),
     );
   }
 }
@@ -126,7 +123,9 @@ class _MainNavigationState extends State<MainNavigation> {
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/images/retro game - profile_ what others see.png'),
+            image: AssetImage(
+              'assets/images/retro game - profile_ what others see.png',
+            ),
             fit: BoxFit.fitWidth,
           ),
         ),
