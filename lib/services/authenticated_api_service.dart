@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Base class for making authenticated API calls
 class AuthenticatedApiService {
-  static const String baseUrl = 'http://147.182.145.237:8000';
+  static const String baseUrl = 'http://localhost:8000';
 
   /// Get the stored access token
   static Future<String?> getAccessToken() async {

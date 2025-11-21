@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:convert';
+import '../services/authenticated_image_provider.dart';
 
 class ViewIDCard extends StatefulWidget {
   final String username;
@@ -164,14 +165,10 @@ class _ViewIDCardState extends State<ViewIDCard> with SingleTickerProviderStateM
                                 radius: 50,
                                 backgroundColor: Colors.grey[800],
                                 backgroundImage: widget.profilePictureUrl != null && widget.profilePictureUrl!.isNotEmpty
-                                    ? NetworkImage(widget.profilePictureUrl!)
+                                    ? AuthenticatedImageProvider(widget.profilePictureUrl!)
                                     : null,
                                 child: widget.profilePictureUrl == null || widget.profilePictureUrl!.isEmpty
-                                    ? Icon(
-                                        Icons.person,
-                                        size: 50,
-                                        color: Colors.grey[400],
-                                      )
+                                    ? Icon(Icons.person, size: 50, color: Colors.grey[400])
                                     : null,
                               ),
                             ),
