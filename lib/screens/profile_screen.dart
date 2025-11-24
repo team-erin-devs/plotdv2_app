@@ -19,7 +19,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<dynamic>? _completedProofs;
   bool _isLoading = true;
   String? _error;
-  
+
   // User editable fields (loaded from backend)
   String _userBio = '';
   String _userMajor = '';
@@ -44,19 +44,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final info = await AuthenticatedApiService.getCurrentUser();
       final profile = await AuthenticatedApiService.getUserProfile();
       final proofs = await AuthenticatedApiService.getUserProofs();
-      
+
       setState(() {
         _userStats = stats;
         _userInfo = info;
         _userProfile = profile;
-        _completedProofs = proofs.where((p) => p['status'] == 'approved').toList();
-        
+        _completedProofs = proofs
+            .where((p) => p['status'] == 'approved')
+            .toList();
+
         // Load profile fields from backend
         _userBio = profile['bio'] ?? 'No bio yet';
         _userMajor = profile['major'] ?? 'Not specified';
         _userClass = profile['class_year'] ?? 'Not specified';
         _profilePictureUrl = profile['profile_picture'] ?? '';
-        
+
         _isLoading = false;
       });
     } catch (e) {
@@ -67,8 +69,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-
-
   Future<void> _handleLogout() async {
     try {
       await AuthService.logout();
@@ -76,9 +76,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Navigator.of(context).pushReplacementNamed('/login');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error logging out: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error logging out: $e')));
     }
   }
 
@@ -92,7 +92,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         currentProfilePictureUrl: _profilePictureUrl,
       ),
     );
-    
+
     if (result != null) {
       try {
         // Call API to update profile
@@ -102,7 +102,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           classYear: result['class'],
           profilePicture: result['profile_picture'],
         );
-        
+
         setState(() {
           _userProfile = updatedProfile;
           _userBio = updatedProfile['bio'] ?? 'No bio yet';
@@ -110,7 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _userClass = updatedProfile['class_year'] ?? 'Not specified';
           _profilePictureUrl = updatedProfile['profile_picture'] ?? '';
         });
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -154,8 +154,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: CircularProgressIndicator(color: Colors.white),
               )
             : _error != null
-                ? _buildError()
-                : _buildProfile(),
+            ? _buildError()
+            : _buildProfile(),
       ),
     );
   }
@@ -219,12 +219,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ? NetworkImage(_profilePictureUrl)
                             : null,
                         child: _profilePictureUrl.isEmpty
-                            ? Icon(Icons.person, size: 50, color: Colors.grey[600])
+                            ? Icon(
+                                Icons.person,
+                                size: 50,
+                                color: Colors.grey[600],
+                              )
                             : null,
                       ),
-                      
+
                       const SizedBox(width: 16),
-                      
+
                       // Username, Handle, and Bio on the right
                       Expanded(
                         child: Column(
@@ -239,9 +243,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            
+
                             const SizedBox(height: 4),
-                            
+
                             // Handle
                             Text(
                               '@${username.toLowerCase()}',
@@ -250,9 +254,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 fontSize: 14,
                               ),
                             ),
-                            
+
                             const SizedBox(height: 12),
-                            
+
                             // Bio
                             Text(
                               _userBio,
@@ -267,9 +271,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 20),
-                  
+
                   // University - Centered
                   Center(
                     child: Text(
@@ -280,9 +284,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Rank, Major, Class badges
                   Wrap(
                     alignment: WrapAlignment.start,
@@ -294,9 +298,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _buildBadge(_userClass, Colors.purple),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 20),
-                  
+
                   // Edit Profile and View ID buttons with gradient background
                   Container(
                     decoration: BoxDecoration(
@@ -318,7 +322,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             onPressed: _editProfile,
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,
-                              side: BorderSide(color: Colors.grey[700]!, width: 1),
+                              side: BorderSide(
+                                color: Colors.grey[700]!,
+                                width: 1,
+                              ),
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
@@ -360,9 +367,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Badges Earned Section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -387,22 +394,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Badge icons with gradients
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: _buildBadgeIcons(challengesCompleted, totalPoints),
+                      children: _buildBadgeIcons(
+                        challengesCompleted,
+                        totalPoints,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Completed Missions Section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -417,15 +427,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Mission image grid
                   _buildMissionGrid(),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 32),
           ],
         ),
@@ -447,10 +457,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             width: 10,
             height: 10,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 6),
           Text(
@@ -466,7 +473,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-  
+
   int _getSampleMissionCount() {
     // Show sample count of 67 if no real proofs
     return _completedProofs?.length ?? 67;
@@ -480,39 +487,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.all(20),
           child: Text(
             'Complete challenges to earn badges!',
-            style: GoogleFonts.urbanist(
-              color: Colors.grey[600],
-              fontSize: 14,
-            ),
+            style: GoogleFonts.urbanist(color: Colors.grey[600], fontSize: 14),
           ),
         ),
       ];
     }
-    
+
     // Colorful gradient badges - always show 5 with different colors
     final badgeData = [
       {
-        'colors': [const Color(0xFF00D4FF), const Color(0xFF9C27B0)], // Blue to Purple
+        'colors': [
+          const Color(0xFF00D4FF),
+          const Color(0xFF9C27B0),
+        ], // Blue to Purple
         'icon': Icons.military_tech,
       },
       {
-        'colors': [const Color(0xFF9C27B0), const Color(0xFFE91E63)], // Purple to Pink
+        'colors': [
+          const Color(0xFF9C27B0),
+          const Color(0xFFE91E63),
+        ], // Purple to Pink
         'icon': Icons.emoji_events,
       },
       {
-        'colors': [const Color(0xFFE91E63), const Color(0xFFFF5722)], // Pink to Red
+        'colors': [
+          const Color(0xFFE91E63),
+          const Color(0xFFFF5722),
+        ], // Pink to Red
         'icon': Icons.local_fire_department,
       },
       {
-        'colors': [const Color(0xFF00D4FF), const Color(0xFF00BCD4)], // Cyan to Light Blue
+        'colors': [
+          const Color(0xFF00D4FF),
+          const Color(0xFF00BCD4),
+        ], // Cyan to Light Blue
         'icon': Icons.star,
       },
       {
-        'colors': [const Color(0xFF9C27B0), const Color(0xFF673AB7)], // Purple variant
+        'colors': [
+          const Color(0xFF9C27B0),
+          const Color(0xFF673AB7),
+        ], // Purple variant
         'icon': Icons.workspace_premium,
       },
     ];
-    
+
     return badgeData.map((badge) {
       return Container(
         width: 70,
@@ -533,11 +552,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ],
         ),
-        child: Icon(
-          badge['icon'] as IconData,
-          color: Colors.white,
-          size: 36,
-        ),
+        child: Icon(badge['icon'] as IconData, color: Colors.white, size: 36),
       );
     }).toList();
   }
@@ -549,7 +564,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(40),
         child: Column(
           children: [
-            Icon(Icons.photo_library_outlined, size: 64, color: Colors.grey[700]),
+            Icon(
+              Icons.photo_library_outlined,
+              size: 64,
+              color: Colors.grey[700],
+            ),
             const SizedBox(height: 16),
             Text(
               'No completed missions yet',
@@ -571,7 +590,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
     }
-    
+
     // Create a grid of mission images (3 columns, 2 rows)
     return GridView.builder(
       shrinkWrap: true,
@@ -586,7 +605,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       itemBuilder: (context, index) {
         final proof = _completedProofs![index];
         final fileUrl = proof['file'] as String?;
-        
+
         if (fileUrl != null && fileUrl.isNotEmpty) {
           return ClipRRect(
             borderRadius: BorderRadius.circular(12),
@@ -603,7 +622,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Center(
                     child: CircularProgressIndicator(
                       value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                          ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
                           : null,
                       color: const Color(0xFF4FC3F7),
                     ),
@@ -622,7 +642,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           );
         }
-        
+
         // If no file URL, show placeholder
         return Container(
           decoration: BoxDecoration(
@@ -645,7 +665,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       [const Color(0xFFfa709a), const Color(0xFFfee140)],
       [const Color(0xFF30cfd0), const Color(0xFF330867)],
     ];
-    
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
