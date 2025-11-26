@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'intro_video_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -29,7 +30,13 @@ class WelcomeScreen extends StatelessWidget {
             left: (size.width - 309) / 2,   // same width as your design
             top: 684,                       // same top offset
             child: GestureDetector(
-              onTap: () => Navigator.pushNamed(context, '/login'),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const IntroVideoScreen(),
+                  ),
+                );
+              },
               child: Image.asset(
                 'assets/images/Join-the-plot-button.png',
                 width: 309,

@@ -46,6 +46,8 @@ dependencies:
   path: ^1.9.1
   flutter_image_compress: ^2.4.0
   qr_flutter: ^4.1.0
+  video_player: ^2.9.2
+  chewie: ^1.8.5
 
 dev_dependencies:
   flutter_test:
@@ -72,6 +74,7 @@ flutter:
   assets:
     - assets/fonts/
     - assets/images/
+    - assets/videos/
 
   fonts:
     - family: Epoch

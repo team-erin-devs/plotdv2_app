@@ -1,0 +1,11 @@
+📹 DROP YOUR INTRO VIDEO HERE
+
+Supported formats: .mp4, .mov
+File name: intro_video.mp4
+
+Once you drop it here:
+1. Make sure it's named "intro_video.mp4"
+2. The code is already set up to use it
+3. No need to push to git (it's in .gitignore)
+
+The video will be bundled with the app and play instantly!
