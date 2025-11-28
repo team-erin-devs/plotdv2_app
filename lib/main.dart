@@ -8,11 +8,9 @@ import 'package:team_erin_app/screens/login_screen.dart';
 import 'package:team_erin_app/screens/register_screen.dart';
 import 'package:team_erin_app/screens/profile_screen.dart';
 import 'package:team_erin_app/screens/welcome_screen.dart';
+import 'package:team_erin_app/screens/intro_video_screen.dart';
 import 'package:team_erin_app/widgets/auth_guard.dart';
 import 'services/auth_service.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
 
   final bool loggedIn = await AuthService.isAuthenticated();
 
@@ -44,15 +42,15 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: false, // retro vibe
       ),
-      home:
-          const AuthSplashScreen(), // Start with splash screen that checks auth
+      home: const IntroVideoWrapper(),
       routes: {
+        '/auth': (context) => const AuthSplashScreen(),
         '/welcome': (context) => const WelcomeScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
-        '/home': (context) => MainNavigation(),
-        '/challenges': (context) => ChallengesScreen(),
-        '/challenges/detail': (context) => ChallengesScreen(),
+        '/home': (context) => AuthGuard(child: const MainNavigation()),
+        '/challenges': (context) => AuthGuard(child: const ChallengesScreen()),
+        '/challenges/detail': (context) => AuthGuard(child: const ChallengesScreen()),
       },
     );
   }
@@ -74,9 +72,9 @@ class _AuthSplashScreenState extends State<AuthSplashScreen> {
 
   Future<void> _checkAuthAndNavigate() async {
     final isAuth = await AuthService.isAuthenticated();
-
+    
     if (!mounted) return;
-
+    
     if (isAuth) {
       Navigator.of(context).pushReplacementNamed('/home');
     } else {
@@ -88,7 +86,9 @@ class _AuthSplashScreenState extends State<AuthSplashScreen> {
   Widget build(BuildContext context) {
     return const Scaffold(
       backgroundColor: Colors.black,
-      body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      body: Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      ),
     );
   }
 }
