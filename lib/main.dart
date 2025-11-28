@@ -12,6 +12,9 @@ import 'package:team_erin_app/screens/intro_video_screen.dart';
 import 'package:team_erin_app/widgets/auth_guard.dart';
 import 'services/auth_service.dart';
 
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   final bool loggedIn = await AuthService.isAuthenticated();
 
   runApp(MyApp(loggedIn: loggedIn));
