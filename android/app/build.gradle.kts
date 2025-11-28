@@ -30,14 +30,14 @@ android {
 
     defaultConfig {
         applicationId = "com.teamerin.plotd"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    // 🔽 remove or comment out this whole block for now
+    /*
     signingConfigs {
         create("release") {
             keyAlias = keystoreProperties["keyAlias"] as String
@@ -46,15 +46,22 @@ android {
             storePassword = keystoreProperties["storePassword"] as String
         }
     }
+    */
 
     buildTypes {
+        getByName("debug") {
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+            // Default debug signing is fine for dev
+            // signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
         }
     }
 }
+
 
 flutter {
     source = "../.."
