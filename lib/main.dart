@@ -12,6 +12,9 @@ import 'package:team_erin_app/screens/intro_video_screen.dart';
 import 'package:team_erin_app/widgets/auth_guard.dart';
 import 'services/auth_service.dart';
 
+// GLOBAL KEY HERE
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 

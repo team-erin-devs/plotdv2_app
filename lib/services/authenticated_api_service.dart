@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../main.dart';
 
 /// Base class for making authenticated API calls
 class AuthenticatedApiService {
@@ -28,11 +29,15 @@ class AuthenticatedApiService {
     await prefs.setString('refresh_token', refreshToken);
   }
 
-  /// Clear stored tokens (for logout)
+  /// Clear stored tokens and force the user back to the welcome screen
   static Future<void> clearTokens() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('access_token');
     await prefs.remove('refresh_token');
+    await prefs.remove('user_info'); // Good practice to clear user info too
+    
+    // Trigger the Hard Logout to wipe the navigation stack and go to Welcome
+    navigatorKey.currentState?.pushNamedAndRemoveUntil('/welcome', (route) => false);
   }
 
   /// Get headers with authentication
@@ -44,29 +49,45 @@ class AuthenticatedApiService {
     };
   }
 
+  
   /// Refresh the access token using the refresh token
   static Future<bool> refreshAccessToken() async {
     try {
       final refreshToken = await getRefreshToken();
-      if (refreshToken == null) return false;
+      if (refreshToken == null) {
+        await clearTokens();
+        return false;
+      }
 
       final response = await http.post(
-        Uri.parse('$baseUrl/api/auth/token/refresh/'),
+        Uri.parse('$baseUrl/api/auth/refresh_token/'), // Make sure this matches your Django urls.py
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refresh': refreshToken}),
+        // FIX 1: Django expects 'refresh_token', not 'refresh'
+        body: jsonEncode({'refresh_token': refreshToken}), 
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final newAccessToken = data['access'];
+        
+        // FIX 2: Django returns 'access_token', not 'access'
+        final newAccessToken = data['access_token']; 
+        
         if (newAccessToken != null) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('access_token', newAccessToken);
+          print('✅ Token successfully refreshed in the background!');
           return true;
         }
       }
+
+      // FIX 3: If the refresh request fails (token is invalid or expired > 1 day)
+      print('🔴 Refresh token expired or invalid. Forcing logout.');
+      await clearTokens();
       return false;
+      
     } catch (e) {
+      print('🔴 Error during token refresh: $e');
+      await clearTokens();
       return false;
     }
   }
