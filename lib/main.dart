@@ -10,6 +10,8 @@ import 'package:team_erin_app/screens/profile_screen.dart';
 import 'package:team_erin_app/screens/welcome_screen.dart';
 import 'package:team_erin_app/screens/intro_video_screen.dart';
 import 'package:team_erin_app/widgets/auth_guard.dart';
+import 'package:team_erin_app/screens/edit_sidequest_screen.dart';
+import 'package:team_erin_app/screens/sidequest_confirmation_screen.dart';
 import 'services/auth_service.dart';
 
 void main() async {
@@ -54,6 +56,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => AuthGuard(child: const MainNavigation()),
         '/challenges': (context) => AuthGuard(child: const ChallengesScreen()),
         '/challenges/detail': (context) => AuthGuard(child: const ChallengesScreen()),
+        '/sidequest-confirmation': (context) => const SidequestConfirmationScreen(),
       },
     );
   }
@@ -110,8 +113,9 @@ class _MainNavigationState extends State<MainNavigation> {
   final List<Widget> _pages = [
     const HomeScreen(), // 0 = Home
     const ChallengesScreen(), // 1 = Missions
-    const LeaderboardScreen(), // 2 = Ranking
-    const ProfileScreen(), // 3 = Profile
+    const EditSidequestScreen(), // 2 = Sidequests
+    const LeaderboardScreen(), // 3 = Ranking
+    const ProfileScreen(), // 4 = Profile
   ];
 
   void _onItemTapped(int index) {
@@ -140,6 +144,7 @@ class _MainNavigationState extends State<MainNavigation> {
         items: const [
           _NeoNavItem(icon: Icons.home_rounded, label: 'Home'),
           _NeoNavItem(icon: Icons.flag_circle_rounded, label: 'Missions'),
+          _NeoNavItem(icon: Icons.explore_rounded, label: 'Sidequests'),
           _NeoNavItem(icon: Icons.bar_chart_rounded, label: 'Ranking'),
           _NeoNavItem(icon: Icons.person_rounded, label: 'Profile'),
         ],
