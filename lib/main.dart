@@ -14,6 +14,9 @@ import 'package:team_erin_app/screens/edit_sidequest_screen.dart';
 import 'package:team_erin_app/screens/sidequest_confirmation_screen.dart';
 import 'services/auth_service.dart';
 
+// GLOBAL KEY HERE
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 

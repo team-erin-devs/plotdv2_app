@@ -60,8 +60,6 @@ app.*.map.json
 app.*.symbols
 
 # --- FVM ---
-.fvm/flutter_sdk
-.fvm/versions/
 
 # --- Misc ---
 *.log
@@ -70,3 +68,6 @@ app.*.symbols
 *.pid
 *.seed
 *.pid.lock
+
+# FVM Version Cache
+.fvm/
