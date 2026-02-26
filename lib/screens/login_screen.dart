@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
 import 'package:flutter/gestures.dart';
-
+import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,222 +16,168 @@ class _LoginScreenState extends State<LoginScreen> {
   final _authService = AuthService();
   bool _isLoading = false;
 
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       try {
-        final response = await _authService.login(
-          username: _usernameController.text,
+        await _authService.login(
+          username: _usernameController.text.trim(),
           password: _passwordController.text,
         );
-
-        //navigate after successful login
         if (mounted) {
           Navigator.pushReplacementNamed(context, '/home');
         }
-
-        print(response);
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString()),
+              backgroundColor: Colors.red[400],
+            ),
+          );
+        }
       } finally {
-        setState(() => _isLoading = false);
+        if (mounted) setState(() => _isLoading = false);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    const background = Color(0xFF030303);
-    const grey = Color(0xFFACACAC);
-    const underline = Color(0xFF2D2D2D);
-    const accentPink = Color.fromRGBO(237, 33, 144, 0.25);
-
     return Scaffold(
-      backgroundColor: Colors.black, // phone background
-      body: Center(
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(38), // matches Figma
-          child: Container(
-            width: 393,
-            height: 852,
-            color: background,
-            child: SafeArea(
-              child: Form(
-                key: _formKey,
-                child: Padding(
-                  // Figma left = 67px, button left = 102px; this is a good middle ground
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 100),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 60),
 
-                      // Logo (Plotd*)
-                      Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // If you want to use the image logo:
-                            Image.asset(
-                              'assets/images/login logo.png',
-                              height: 62.07, // ~Group 76 height
-                              fit: BoxFit.contain,
-                            ),
-
-                            // If you ever want text instead, comment the Image and
-                            // uncomment the Row below and make sure fonts exist.
-                            /*
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Text(
-                                  'Ploit',
-                                  style: TextStyle(
-                                    fontFamily: 'Epoch',
-                                    fontSize: 56.67,
-                                    height: 51 / 56.67,
-                                    letterSpacing: -0.023,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  '*',
-                                  style: TextStyle(
-                                    fontFamily: 'Epoch',
-                                    fontSize: 56.67,
-                                    height: 51 / 56.67,
-                                    letterSpacing: -0.023,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            */
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 52.07), // 100 → 202.07 gap
-
-                      // Username field group
-                      _buildUnderlineField(
-                        label: 'Username',
-                        controller: _usernameController,
-                        isPassword: false,
-                        grey: grey,
-                        underline: underline,
-                      ),
-
-                      const SizedBox(height: 19), // 202.07 → 250.07 gap approx
-
-                      // Password field group
-                      _buildUnderlineField(
-                        label: 'Password',
-                        controller: _passwordController,
-                        isPassword: true,
-                        grey: grey,
-                        underline: underline,
-                      ),
-
-                      const SizedBox(height: 60), // 279.07 → 339.07 gap approx
-
-                      // Centered glowy Register button
-                      Center(
-                        child: GestureDetector(
-                          onTap: _isLoading ? null : _handleLogin,
-                          child: Container(
-                            width: 393,
-                            height: 64,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [
-                                  Color(0xFFE91E8C),
-                                  Color(0xFFC9178B),
-                                ],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
-                              borderRadius: BorderRadius.circular(32),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color.fromRGBO(233, 30, 140, 0.4),
-                                  blurRadius: 30,
-                                  spreadRadius: 0,
-                                  offset: Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Center(
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.5,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Text(
-                                      "Login",
-                                      style: TextStyle(
-                                        fontFamily: 'Urbanist',
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 20,
-                                        letterSpacing: -0.023,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // "Don't have an account? Register" 
-                      Center(
-                        child: RichText(
-                          text: TextSpan(
-                            style: const TextStyle(
-                              fontFamily: 'Urbanist',
-                              fontWeight: FontWeight.w400,
-                              fontSize: 14,
-                              height: 17 / 14,
-                              letterSpacing: -0.023,
-                              color: grey,
-                            ),
-                            children: [
-                              const TextSpan(
-                                text: "Don't have an account? ",
-                              ),
-                              TextSpan(
-                                text: "Register",
-                                recognizer: TapGestureRecognizer()
-                                  ..onTap = () {
-                                    Navigator.pushReplacementNamed(context, '/register');
-                                    // or Navigator.pushNamed(context, '/register');
-                                  },
-                                style: const TextStyle(
-                                  decoration: TextDecoration.underline,
-                                  fontWeight: FontWeight.w500,
-                                  color: grey,
-                                ),
-                              ),
-
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      // Spacer to keep content near top like the design
-                      const Spacer(),
-                    ],
+                // Header
+                const Text(
+                  'Welcome Back',
+                  style: TextStyle(
+                    fontFamily: 'Urbanist',
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1A1A1A),
+                    letterSpacing: -0.5,
                   ),
                 ),
-              ),
+
+                const SizedBox(height: 48),
+
+                // Username
+                _buildField(
+                  label: 'Username',
+                  hint: 'ex. username123',
+                  controller: _usernameController,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Username is required';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 32),
+
+                // Password
+                _buildField(
+                  label: 'Password',
+                  controller: _passwordController,
+                  isPassword: true,
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'Password is required';
+                    return null;
+                  },
+                ),
+
+                const Spacer(),
+
+                // Login button
+                GestureDetector(
+                  onTap: _isLoading ? null : _handleLogin,
+                  child: Container(
+                    width: double.infinity,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFFF5C542),
+                          Color(0xFFF2A6A2),
+                          Color(0xFFA8A0C8),
+                        ],
+                      ),
+                    ),
+                    child: Center(
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Log In',
+                              style: TextStyle(
+                                fontFamily: 'Urbanist',
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Don't have an account? Register
+                Center(
+                  child: RichText(
+                    text: TextSpan(
+                      style: const TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: Color(0xFF888888),
+                      ),
+                      children: [
+                        const TextSpan(text: "Don't have an account?  "),
+                        TextSpan(
+                          text: 'Register',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF333333),
+                            decoration: TextDecoration.underline,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () {
+                              Navigator.pushReplacementNamed(context, '/register');
+                            },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 48),
+              ],
             ),
           ),
         ),
@@ -240,61 +185,72 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildUnderlineField({
+  Widget _buildField({
     required String label,
+    String? hint,
     required TextEditingController controller,
-    required bool isPassword,
-    required Color grey,
-    required Color underline,
+    bool isPassword = false,
+    String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontFamily: 'Urbanist',
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1A1A1A),
+          ),
+        ),
+        const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           obscureText: isPassword,
-          cursorColor: Colors.white,
           style: const TextStyle(
             fontFamily: 'Urbanist',
+            fontSize: 16,
             fontWeight: FontWeight.w400,
-            fontSize: 24,
-            height: 29 / 24,
-            letterSpacing: -0.023,
-            color: Colors.white,
+            color: Color(0xFF1A1A1A),
           ),
           decoration: InputDecoration(
-            labelText: label,
-            labelStyle: TextStyle(
+            hintText: hint,
+            hintStyle: TextStyle(
               fontFamily: 'Urbanist',
+              fontSize: 16,
               fontWeight: FontWeight.w400,
-              fontSize: 24,
-              height: 29 / 24,
-              letterSpacing: -0.023,
-              color: grey,
+              color: Colors.grey[400],
             ),
-            floatingLabelBehavior: FloatingLabelBehavior.never,
             isDense: true,
-            contentPadding: const EdgeInsets.only(bottom: 4),
-            enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(
-                color: underline,
-                width: 2,
-              ),
+            contentPadding: const EdgeInsets.only(bottom: 10, top: 4),
+            enabledBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: Color(0xFFE0E0E0), width: 1.5),
             ),
             focusedBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(
-                color: Colors.white,
-                width: 2,
-              ),
+              borderSide: BorderSide(color: Color(0xFFF2A6A2), width: 2),
+            ),
+            errorBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.red, width: 1.5),
+            ),
+            focusedErrorBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.red, width: 2),
             ),
           ),
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return '$label cannot be empty';
-            }
-            return null;
-          },
+          validator: validator,
         ),
+        if (hint != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            hint,
+            style: TextStyle(
+              fontFamily: 'Urbanist',
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              color: Colors.grey[400],
+            ),
+          ),
+        ],
       ],
     );
   }

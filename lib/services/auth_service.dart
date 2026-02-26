@@ -12,6 +12,7 @@ class AuthService {
     required String username,
     required String email,
     required String password,
+    String? name,
     String? university,
     String? studentId,
   }) async {
@@ -22,6 +23,7 @@ class AuthService {
         'username': username,
         'email': email,
         'password': password,
+        if (name != null && name.isNotEmpty) 'name': name,
       }),
     );
 

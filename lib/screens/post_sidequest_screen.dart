@@ -135,12 +135,7 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.close, color: Colors.black, size: 28),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
+          automaticallyImplyLeading: false,
           title: Text(
             'post a sidequest',
             style: GoogleFonts.plusJakartaSans(

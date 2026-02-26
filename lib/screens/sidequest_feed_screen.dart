@@ -112,7 +112,8 @@ class _SidequestFeedScreenState extends State<SidequestFeedScreen> {
             await AuthenticatedApiService.authenticatedGet('/api/sidequests/');
         print('🔵 [Feed] Friends response: ${friendsResponse.statusCode}');
         if (friendsResponse.statusCode == 200) {
-          final List data = jsonDecode(friendsResponse.body);
+          final decoded = jsonDecode(friendsResponse.body);
+          final List data = decoded is List ? decoded : (decoded['results'] ?? []);
           print('🔵 [Feed] Friends: ${data.length} sidequests');
           for (final item in data) {
             final sq = SidequestItem.fromJson(item);
@@ -132,7 +133,8 @@ class _SidequestFeedScreenState extends State<SidequestFeedScreen> {
             await AuthenticatedApiService.authenticatedGet('/api/sidequests/campus/');
         print('🔵 [Feed] Campus response: ${campusResponse.statusCode}');
         if (campusResponse.statusCode == 200) {
-          final List data = jsonDecode(campusResponse.body);
+          final decoded = jsonDecode(campusResponse.body);
+          final List data = decoded is List ? decoded : (decoded['results'] ?? []);
           print('🔵 [Feed] Campus: ${data.length} sidequests');
           for (final item in data) {
             final sq = SidequestItem.fromJson(item);
@@ -165,21 +167,24 @@ class _SidequestFeedScreenState extends State<SidequestFeedScreen> {
   List<SidequestItem> get _filteredSidequests {
     if (_activeFilters.isEmpty) return _allSidequests;
 
+    final sourceFilters = _activeFilters.intersection({'friends-only', 'public'});
+    final vibeFilters = _activeFilters.intersection(
+        {'chill', 'active', 'social', 'fun', 'productive'});
+
     return _allSidequests.where((sq) {
-      bool matches = false;
-      if (_activeFilters.contains('friends-only') && sq.isFriendsOnly) matches = true;
-      if (_activeFilters.contains('public') && sq.postToCampusBoard) matches = true;
-      // Vibe filters
-      final vibeFilters = _activeFilters.intersection(
-          {'chill', 'active', 'social', 'fun', 'productive'});
-      if (vibeFilters.isNotEmpty && vibeFilters.contains(sq.vibe)) matches = true;
-      // If only vibe filters are set (no friends/public), match on vibe alone
-      if (!_activeFilters.contains('friends-only') &&
-          !_activeFilters.contains('public') &&
-          vibeFilters.isNotEmpty) {
-        return vibeFilters.contains(sq.vibe);
-      }
-      return matches;
+      // Source filter check
+      bool sourceMatch = sourceFilters.isEmpty; // no source filter = match all
+      if (sourceFilters.contains('friends-only') && sq.isFriendsOnly) sourceMatch = true;
+      if (sourceFilters.contains('public') && sq.postToCampusBoard) sourceMatch = true;
+      // Always include own sidequests when a source filter is active
+      if (sourceFilters.isNotEmpty && sq.isOwn) sourceMatch = true;
+
+      // Vibe filter check
+      bool vibeMatch = vibeFilters.isEmpty; // no vibe filter = match all
+      if (vibeFilters.contains(sq.vibe)) vibeMatch = true;
+
+      // Must pass BOTH source AND vibe filters
+      return sourceMatch && vibeMatch;
     }).toList();
   }
 
@@ -356,6 +361,12 @@ class _SidequestFeedScreenState extends State<SidequestFeedScreen> {
                                         if (isActive) {
                                           _activeFilters.remove(filter);
                                         } else {
+                                          // friends-only and public are mutually exclusive
+                                          if (filter == 'friends-only') {
+                                            _activeFilters.remove('public');
+                                          } else if (filter == 'public') {
+                                            _activeFilters.remove('friends-only');
+                                          }
                                           _activeFilters.add(filter);
                                         }
                                       });

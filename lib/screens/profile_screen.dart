@@ -6,7 +6,10 @@ import '../services/authenticated_api_service.dart';
 import '../services/auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final int? userId;
+  final String? username;
+
+  const ProfileScreen({super.key, this.userId, this.username});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -21,6 +24,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _sidequestsCompleted = 0;
   int _sidequestsHosted = 0;
   List<Map<String, dynamic>> _activeSidequests = [];
+
+  // Follow state (for other user profiles)
+  bool _isFriend = false;
+  bool _pendingSent = false;
+  bool _isFollowLoading = false;
+
+  bool get _isOwnProfile => widget.userId == null;
 
   // Placeholder interests (would come from backend in a real setup)
   final List<Map<String, String>> _interests = [
@@ -41,52 +51,117 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Fetch profile + stats + active sidequests in parallel
-      final profileFuture = AuthenticatedApiService.authenticatedGet('/api/user/profile/');
-      final statsFuture = AuthenticatedApiService.authenticatedGet('/api/user/stats/');
-      final mineFuture = AuthenticatedApiService.authenticatedGet('/api/sidequests/mine/');
-      final joinedFuture = AuthenticatedApiService.authenticatedGet('/api/sidequests/joined/');
-
-      final results = await Future.wait([profileFuture, statsFuture, mineFuture, joinedFuture]);
-
-      // Profile
-      if (results[0].statusCode == 200) {
-        final data = jsonDecode(results[0].body);
-        _displayName = (data['display_name'] != null && data['display_name'].toString().isNotEmpty)
-            ? data['display_name']
-            : data['user']?['first_name'] ?? data['user']?['username'] ?? 'User';
-        _username = data['user']?['username'] ?? 'user';
-        _profilePictureUrl = data['profile_picture'] ?? '';
-      }
-
-      // Stats
-      if (results[1].statusCode == 200) {
-        final stats = jsonDecode(results[1].body);
-        _friendsCount = stats['friends_count'] ?? 0;
-        _sidequestsCompleted = stats['sidequests_joined'] ?? 0;
-        _sidequestsHosted = stats['sidequests_created'] ?? 0;
-      }
-
-      // Active sidequests (mine + joined, deduped)
-      final Set<int> seenIds = {};
-      _activeSidequests = [];
-
-      for (int i = 2; i <= 3; i++) {
-        if (results[i].statusCode == 200) {
-          final List items = jsonDecode(results[i].body);
-          for (final item in items) {
-            final id = item['id'] as int;
-            if (seenIds.add(id)) {
-              _activeSidequests.add(item as Map<String, dynamic>);
-            }
-          }
-        }
+      if (_isOwnProfile) {
+        await _loadOwnProfile();
+      } else {
+        await _loadOtherProfile();
       }
     } catch (e) {
       print('🔴 [Profile] Error: $e');
     }
 
     if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _loadOwnProfile() async {
+    final profileFuture = AuthenticatedApiService.authenticatedGet('/api/user/profile/');
+    final statsFuture = AuthenticatedApiService.authenticatedGet('/api/user/stats/');
+    final mineFuture = AuthenticatedApiService.authenticatedGet('/api/sidequests/mine/');
+    final joinedFuture = AuthenticatedApiService.authenticatedGet('/api/sidequests/joined/');
+
+    final results = await Future.wait([profileFuture, statsFuture, mineFuture, joinedFuture]);
+
+    if (results[0].statusCode == 200) {
+      final data = jsonDecode(results[0].body);
+      _displayName = (data['display_name'] != null && data['display_name'].toString().isNotEmpty)
+          ? data['display_name']
+          : data['user']?['first_name'] ?? data['user']?['username'] ?? 'User';
+      _username = data['user']?['username'] ?? 'user';
+      _profilePictureUrl = data['profile_picture'] ?? '';
+    }
+
+    if (results[1].statusCode == 200) {
+      final stats = jsonDecode(results[1].body);
+      _friendsCount = stats['friends_count'] ?? 0;
+      _sidequestsCompleted = stats['sidequests_joined'] ?? 0;
+      _sidequestsHosted = stats['sidequests_created'] ?? 0;
+    }
+
+    final Set<int> seenIds = {};
+    _activeSidequests = [];
+    for (int i = 2; i <= 3; i++) {
+      if (results[i].statusCode == 200) {
+        final decoded = jsonDecode(results[i].body);
+        final List items = decoded is List ? decoded : (decoded['results'] ?? []);
+        for (final item in items) {
+          final id = item['id'] as int;
+          if (seenIds.add(id)) {
+            _activeSidequests.add(item as Map<String, dynamic>);
+          }
+        }
+      }
+    }
+  }
+
+  Future<void> _loadOtherProfile() async {
+    debugPrint('🔵 [Profile] Loading other user: ${widget.userId}');
+    final res = await AuthenticatedApiService.authenticatedGet(
+        '/api/user/profile/${widget.userId}/');
+
+    debugPrint('🔵 [Profile] Response: ${res.statusCode} ${res.body.substring(0, res.body.length.clamp(0, 300))}');
+    if (res.statusCode == 200 && mounted) {
+      final data = jsonDecode(res.body);
+
+      // display_name can be empty string from backend, so check .isNotEmpty
+      final rawDisplayName = data['display_name']?.toString() ?? '';
+      final rawUsername = data['user']?['username']?.toString() ?? '';
+
+      _displayName = rawDisplayName.isNotEmpty
+          ? rawDisplayName
+          : (widget.username ?? 'User');
+      _username = rawUsername.isNotEmpty
+          ? rawUsername
+          : (widget.username ?? 'user');
+      _profilePictureUrl = data['profile_picture'] ?? '';
+
+      debugPrint('🔵 [Profile] Parsed: name=$_displayName, user=$_username');
+
+      final stats = data['stats'] ?? {};
+      _friendsCount = stats['friends_count'] ?? 0;
+      _sidequestsCompleted = stats['sidequests_joined'] ?? 0;
+      _sidequestsHosted = stats['sidequests_created'] ?? 0;
+
+      _activeSidequests = List<Map<String, dynamic>>.from(
+          data['active_sidequests'] ?? []);
+
+      _isFriend = data['is_friend'] ?? false;
+      _pendingSent = data['pending_sent'] ?? false;
+    }
+  }
+
+  Future<void> _handleFollow() async {
+    setState(() => _isFollowLoading = true);
+    try {
+      final res = await AuthenticatedApiService.authenticatedPost(
+        '/api/friends/request/',
+        {'username': _username},
+      );
+      if (mounted && res.statusCode == 201) {
+        setState(() => _pendingSent = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('friend request sent! 🎉',
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
+            backgroundColor: const Color(0xFFE8837C),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('🔴 Follow error: $e');
+    }
+    if (mounted) setState(() => _isFollowLoading = false);
   }
 
   Future<void> _handleLogout() async {
@@ -163,27 +238,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               ],
                             ),
-                            // Hamburger menu
-                            PopupMenuButton<String>(
-                              icon: const Icon(Icons.menu, color: Colors.black, size: 28),
-                              onSelected: (value) {
-                                if (value == 'logout') _handleLogout();
-                              },
-                              itemBuilder: (context) => [
-                                PopupMenuItem(
-                                  value: 'logout',
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.logout, size: 18, color: Colors.redAccent),
-                                      const SizedBox(width: 8),
-                                      Text('Log out',
-                                          style: GoogleFonts.plusJakartaSans(
-                                              fontWeight: FontWeight.w600)),
-                                    ],
+                            // Hamburger menu (only on own profile)
+                            if (_isOwnProfile)
+                              PopupMenuButton<String>(
+                                icon: const Icon(Icons.menu, color: Colors.black, size: 28),
+                                onSelected: (value) {
+                                  if (value == 'logout') _handleLogout();
+                                },
+                                itemBuilder: (context) => [
+                                  PopupMenuItem(
+                                    value: 'logout',
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.logout, size: 18, color: Colors.redAccent),
+                                        const SizedBox(width: 8),
+                                        Text('Log out',
+                                            style: GoogleFonts.plusJakartaSans(
+                                                fontWeight: FontWeight.w600)),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                ],
+                              )
+                            else
+                              IconButton(
+                                onPressed: () => Navigator.pop(context),
+                                icon: const Icon(Icons.close, size: 26),
+                              ),
                           ],
                         ),
                         const SizedBox(height: 28),
@@ -235,52 +316,100 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // ── Edit / Share Profile Buttons ──
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () {},
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.black,
-                                  side: const BorderSide(color: Color(0xFFD0D0D0)),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
+                        // ── Buttons ──
+                        if (_isOwnProfile)
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () {},
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.black,
+                                    side: const BorderSide(color: Color(0xFFD0D0D0)),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
                                   ),
-                                ),
-                                child: Text(
-                                  'edit profile',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () {},
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.black,
-                                  side: const BorderSide(color: Color(0xFFD0D0D0)),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                child: Text(
-                                  'share profile',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
+                                  child: Text(
+                                    'edit profile',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
                               ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () {},
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.black,
+                                    side: const BorderSide(color: Color(0xFFD0D0D0)),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'share profile',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: (_isFriend || _pendingSent || _isFollowLoading)
+                                  ? null
+                                  : _handleFollow,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _isFriend
+                                    ? const Color(0xFF66BB6A)
+                                    : _pendingSent
+                                        ? const Color(0xFF90A4AE)
+                                        : const Color(0xFF64A8DB),
+                                disabledBackgroundColor: _isFriend
+                                    ? const Color(0xFF66BB6A).withOpacity(0.7)
+                                    : const Color(0xFF90A4AE).withOpacity(0.7),
+                                foregroundColor: Colors.white,
+                                disabledForegroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: _isFollowLoading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      _isFriend
+                                          ? 'friends ✓'
+                                          : _pendingSent
+                                              ? 'request sent'
+                                              : 'follow',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                             ),
-                          ],
-                        ),
+                          ),
                         const SizedBox(height: 32),
 
                         // ── Today's Sidequest ──
