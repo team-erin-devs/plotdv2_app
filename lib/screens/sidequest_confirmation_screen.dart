@@ -81,7 +81,7 @@ class _SidequestConfirmationScreenState extends State<SidequestConfirmationScree
                 child: Column(
                   children: [
                     Text(
-                      'quest updated!',
+                      'quest posted!',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 32,
                         fontWeight: FontWeight.w800,
@@ -90,7 +90,7 @@ class _SidequestConfirmationScreenState extends State<SidequestConfirmationScree
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'we\'ve let the squad know',
+                      'your squad can see it now',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -110,7 +110,7 @@ class _SidequestConfirmationScreenState extends State<SidequestConfirmationScree
                         ),
                       ),
                       child: Text(
-                        'back to quest',
+                        'back to home',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,

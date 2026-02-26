@@ -5,7 +5,8 @@ import '../main.dart';
 
 /// Base class for making authenticated API calls
 class AuthenticatedApiService {
-  static const String baseUrl = 'http://147.182.145.237:8000';
+  // Use http://10.0.2.2:8000 for Android emulator, and http://127.0.0.1:8000 for iOS Simulator/Web
+  static const String baseUrl = 'http://127.0.0.1:8000';
 
   /// Get the stored access token
   static Future<String?> getAccessToken() async {

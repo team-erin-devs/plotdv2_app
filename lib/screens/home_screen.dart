@@ -1,11 +1,68 @@
-import 'dart:async';
+import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:team_erin_app/widgets/missions_carousel.dart';
-import 'package:team_erin_app/widgets/leaderboard_section.dart';
-import 'package:team_erin_app/services/api_service.dart';
-import 'package:team_erin_app/models/season.dart';
+import 'package:intl/intl.dart';
+import '../services/authenticated_api_service.dart';
 
+// ─── Sidequest model ─────────────────────────────────────────────────────────
+
+class _HomeSidequest {
+  final int id;
+  final String title;
+  final String creatorUsername;
+  final String vibe;
+  final DateTime eventDatetime;
+  final int participantCount;
+  final int maxPeople;
+  final String? userStatus;
+  final bool postToCampusBoard;
+
+  _HomeSidequest({
+    required this.id,
+    required this.title,
+    required this.creatorUsername,
+    required this.vibe,
+    required this.eventDatetime,
+    required this.participantCount,
+    required this.maxPeople,
+    this.userStatus,
+    required this.postToCampusBoard,
+  });
+
+  factory _HomeSidequest.fromJson(Map<String, dynamic> json) {
+    return _HomeSidequest(
+      id: json['id'],
+      title: json['title'] ?? '',
+      creatorUsername: json['creator']?['username'] ?? 'unknown',
+      vibe: json['vibe'] ?? 'chill',
+      eventDatetime: DateTime.parse(json['event_datetime']),
+      participantCount: json['participant_count'] ?? 0,
+      maxPeople: json['max_people'] ?? 5,
+      userStatus: json['user_status'],
+      postToCampusBoard: json['post_to_campus_board'] ?? false,
+    );
+  }
+
+  bool get isOwn => userStatus == 'creator';
+  bool get isFriend => !isOwn && !postToCampusBoard;
+  bool get isPublic => postToCampusBoard && !isOwn;
+}
+
+// ─── Sidequest idea templates ────────────────────────────────────────────────
+
+final List<Map<String, String>> _sidequestIdeas = [
+  {'title': 'coffee run and study session', 'vibe': 'productive'},
+  {'title': 'sunset walk at the park', 'vibe': 'chill'},
+  {'title': 'pickup basketball game', 'vibe': 'active'},
+  {'title': 'boba and board games', 'vibe': 'social'},
+  {'title': 'late night ramen run', 'vibe': 'fun'},
+  {'title': 'morning yoga on the quad', 'vibe': 'active'},
+  {'title': 'thrift shopping trip', 'vibe': 'fun'},
+  {'title': 'group cooking night', 'vibe': 'social'},
+];
+
+// ─── Home Screen ─────────────────────────────────────────────────────────────
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,221 +72,552 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  Season? _season;
+  String? _firstName;
+  String? _username;
+  List<_HomeSidequest> _activeQuests = [];
   bool _isLoading = true;
-  String? _errorMessage;
-  Timer? _countdownTimer;
-  double _localTimeRemaining = 0;
+  late final PageController _carouselCtrl;
+  int _currentPage = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadSeason();
+    _carouselCtrl = PageController(viewportFraction: 0.65, initialPage: 0);
+    _loadData();
   }
 
   @override
   void dispose() {
-    _countdownTimer?.cancel();
+    _carouselCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _loadSeason() async {
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
     try {
-      print('🟢 Starting to fetch season...');
-      final season = await ApiService.fetchSeason();
-      print('🟢 Season fetched successfully!');
-      print('🟢 Season name: ${season.name}');
-      print('🟢 Time remaining: ${season.timeRemaining}');
-      print('🟢 End date: ${season.endDate}');
-      
-      setState(() {
-        _season = season;
-        _localTimeRemaining = season.timeRemaining;
-        _isLoading = false;
-        _errorMessage = null;
-      });
-      _startCountdown();
-    } catch (e, stackTrace) {
-      print('🔴 Error fetching season: $e');
-      print('🔴 Stack trace: $stackTrace');
-      
-      // Check if it's a 500 error (season ended) or a real error
-      final errorString = e.toString();
-      final is500Error = errorString.contains('500');
-      
-      setState(() {
-        if (is500Error) {
-          // Treat 500 as season ended
-          _localTimeRemaining = 0;
-          _errorMessage = null;
-        } else {
-          // Real error - show error message
-          _errorMessage = errorString;
+      // Fetch profile
+      try {
+        final profileRes = await AuthenticatedApiService.authenticatedGet('/api/user/profile/');
+        if (profileRes.statusCode == 200) {
+          final data = jsonDecode(profileRes.body);
+          _firstName = data['user']?['first_name'];
+          _username = data['user']?['username'];
+          if (_firstName == null || _firstName!.isEmpty) _firstName = _username;
         }
+      } catch (_) {}
+
+      // Fetch my created + joined quests
+      final List<_HomeSidequest> allQuests = [];
+      final Set<int> seenIds = {};
+
+      try {
+        final mineRes = await AuthenticatedApiService.authenticatedGet('/api/sidequests/mine/');
+        if (mineRes.statusCode == 200) {
+          for (final item in jsonDecode(mineRes.body)) {
+            final sq = _HomeSidequest.fromJson(item);
+            if (seenIds.add(sq.id)) allQuests.add(sq);
+          }
+        }
+      } catch (_) {}
+
+      try {
+        final joinedRes = await AuthenticatedApiService.authenticatedGet('/api/sidequests/joined/');
+        if (joinedRes.statusCode == 200) {
+          for (final item in jsonDecode(joinedRes.body)) {
+            final sq = _HomeSidequest.fromJson(item);
+            if (seenIds.add(sq.id)) allQuests.add(sq);
+          }
+        }
+      } catch (_) {}
+
+      allQuests.sort((a, b) => a.eventDatetime.compareTo(b.eventDatetime));
+
+      setState(() {
+        _activeQuests = allQuests;
         _isLoading = false;
       });
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  void _startCountdown() {
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_localTimeRemaining > 0) {
-        setState(() {
-          _localTimeRemaining--;
-        });
-      } else {
-        timer.cancel();
-      }
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _HeaderSection(
-                timeRemaining: _localTimeRemaining,
-                isLoading: _isLoading,
-                errorMessage: _errorMessage,
-              ),
-              const SizedBox(height: 32),
-              const Text(
-                'Your missions for the season...',
-                style: TextStyle(
-                  fontFamily: 'Epoch',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 22,
-                  color: Colors.white,
+    return Theme(
+      data: ThemeData.light().copyWith(
+        scaffoldBackgroundColor: const Color(0xFFF8F4F0),
+        textTheme: GoogleFonts.plusJakartaSansTextTheme(),
+      ),
+      child: Scaffold(
+        body: SafeArea(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFFE8837C)))
+              : RefreshIndicator(
+                  onRefresh: _loadData,
+                  color: const Color(0xFFE8837C),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Plotd Header ──
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text.rich(
+                                  TextSpan(children: [
+                                    TextSpan(
+                                      text: 'Plot',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFF455A64),
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: 'd',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFFFFB300),
+                                      ),
+                                    ),
+                                    const TextSpan(
+                                      text: '✳',
+                                      style: TextStyle(fontSize: 20, color: Color(0xFFE8837C)),
+                                    ),
+                                  ]),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              decoration: const BoxDecoration(
+                                color: Colors.black,
+                                shape: BoxShape.circle,
+                              ),
+                              padding: const EdgeInsets.all(12),
+                              child: Stack(
+                                children: [
+                                  const Icon(Icons.notifications_outlined,
+                                      color: Colors.white, size: 22),
+                                  Positioned(
+                                    right: 0,
+                                    top: 0,
+                                    child: Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFE8837C),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        // ── Greeting ──
+                        Text(
+                          'Hi ${_firstName ?? 'friend'}!',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Your active quests',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // ── Active Quest Cards ──
+                        if (_activeQuests.isEmpty)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(28),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFE8E0D8)),
+                            ),
+                            child: Column(
+                              children: [
+                                const Text('✳', style: TextStyle(fontSize: 36, color: Color(0xFFE8837C))),
+                                const SizedBox(height: 10),
+                                Text(
+                                  'no active quests!',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'join or post one below',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black38,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          ..._activeQuests.map((sq) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _ActiveQuestCard(
+                              sidequest: sq,
+                              currentUsername: _username,
+                            ),
+                          )),
+
+                        const SizedBox(height: 40),
+
+                        // ── Inspo Section ──
+                        Center(
+                          child: Text(
+                            'Wanna host a sidequest?',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Center(
+                          child: Text(
+                            'Here\'s some inspo',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black45,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // ── Carousel ──
+                        SizedBox(
+                          height: 200,
+                          child: PageView.builder(
+                            controller: _carouselCtrl,
+                            padEnds: true,
+                            physics: const BouncingScrollPhysics(),
+                            itemCount: _sidequestIdeas.length,
+                            onPageChanged: (i) => setState(() => _currentPage = i),
+                            itemBuilder: (context, index) {
+                              final idea = _sidequestIdeas[index];
+                              return AnimatedBuilder(
+                                animation: _carouselCtrl,
+                                builder: (_, __) {
+                                  double t = 0;
+                                  if (_carouselCtrl.position.haveDimensions) {
+                                    final page = _carouselCtrl.page ?? 0;
+                                    t = (page - index).abs();
+                                  }
+                                  final scale = (1 - (t * 0.12)).clamp(0.88, 1.0);
+                                  final opacity = (1 - (t * 0.3)).clamp(0.5, 1.0);
+
+                                  return Transform.scale(
+                                    scale: scale,
+                                    child: Opacity(
+                                      opacity: opacity,
+                                      child: _InspoCard(
+                                        title: idea['title']!,
+                                        vibe: idea['vibe']!,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // ── Page Dots ──
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            _sidequestIdeas.length.clamp(0, 6),
+                            (i) => Container(
+                              width: i == _currentPage ? 10 : 7,
+                              height: i == _currentPage ? 10 : 7,
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              decoration: BoxDecoration(
+                                color: i == _currentPage
+                                    ? const Color(0xFF455A64)
+                                    : const Color(0xFFD0D0D0),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 32),
-              const MissionsCarousel(),
-              const SizedBox(height: 32),
-              const Text(
-                'Current leaderboard',
-                style: TextStyle(
-                  fontFamily: 'Epoch',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 22,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const LeaderboardSection(),
-            ],
-          ),
         ),
       ),
     );
   }
 }
 
-class _HeaderSection extends StatelessWidget {
-  final double timeRemaining;
-  final bool isLoading;
-  final String? errorMessage;
+// ─── Active Quest Card ───────────────────────────────────────────────────────
 
-  const _HeaderSection({
-    required this.timeRemaining,
-    required this.isLoading,
-    this.errorMessage,
+class _ActiveQuestCard extends StatelessWidget {
+  final _HomeSidequest sidequest;
+  final String? currentUsername;
+
+  const _ActiveQuestCard({
+    required this.sidequest,
+    this.currentUsername,
   });
 
-  String _getTimeRemaining() {
-    if (timeRemaining <= 0) return 'Season ended';
+  // Own = yellow, Friends = pink, Public = blue
+  Color get _cardColor {
+    if (sidequest.isOwn) return const Color(0xFFFDE08B); // yellow
+    if (sidequest.isPublic) return const Color(0xFFDDE9F7); // blue
+    return const Color(0xFFFDE4E1); // pink (friends)
+  }
 
-    final duration = Duration(seconds: timeRemaining.toInt());
-    final days = duration.inDays;
-    final hours = duration.inHours % 24;
-    final minutes = duration.inMinutes % 60;
+  Color get _starColor {
+    if (sidequest.isOwn) return const Color(0xFFFFB300);
+    if (sidequest.isPublic) return const Color(0xFF64A8DB);
+    return const Color(0xFFE8837C);
+  }
 
-    return '${days}d ${hours}h ${minutes}m';
+  Color get _dotColor {
+    if (sidequest.isOwn) return const Color(0xFFFFB300);
+    if (sidequest.isPublic) return const Color(0xFF90CAF9);
+    return const Color(0xFFF8BBB1);
+  }
+
+  String get _questLabel {
+    if (sidequest.isOwn) return 'your quest';
+    return '${sidequest.creatorUsername}\'s quest';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Welcome to Plotd',
-          style: TextStyle(
-            fontFamily: 'Epoch',
-            fontSize: 28,
-            fontWeight: FontWeight.w400,
-            color: Colors.white,
-            letterSpacing: -0.023,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Time remaining for the season...',
-          style: TextStyle(
-            fontFamily: 'Urbanist',
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-            color: Color(0xFFACACAC),
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (isLoading)
-          const SizedBox(
-            height: 80,
-            child: Center(
-              child: CircularProgressIndicator(
-                color: Colors.white,
-              ),
-            ),
-          )
-        else if (errorMessage != null)
+    final dateStr = DateFormat('MMMM d, yyyy')
+        .format(sidequest.eventDatetime.toLocal())
+        .toLowerCase();
+    final timeStr = DateFormat('h:mm a')
+        .format(sidequest.eventDatetime.toLocal())
+        .toLowerCase();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Quest label + username
+              Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: _dotColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _questLabel,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      Text(
+                        '@${sidequest.isOwn ? (currentUsername ?? sidequest.creatorUsername) : sidequest.creatorUsername}',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black38,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // Title
               Text(
-                'Error loading season',
-                style: TextStyle(
-                  fontFamily: 'Epoch',
-                  fontSize: 24,
-                  color: Colors.red.shade300,
+                sidequest.title,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
+
+              // Info line
               Text(
-                errorMessage!,
-                style: const TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontSize: 14,
-                  color: Color(0xFFACACAC),
+                '$dateStr · $timeStr · ${sidequest.vibe}',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black38,
                 ),
               ),
             ],
-          )
-        else
-          ShaderMask(
-            shaderCallback: (bounds) => const LinearGradient(
-              colors: [Color(0xFF23B2CA), Color(0xFFA621ED), Color(0xFFED2190)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ).createShader(bounds),
-            child: Text(
-              _getTimeRemaining(),
-              style: const TextStyle(
-                fontFamily: 'Epoch',
-                fontSize: 72,
-                fontWeight: FontWeight.w400,
-                height: 0.9,
-                color: Colors.white,
-                letterSpacing: -0.023 * 72,
+          ),
+
+          // Decorative star
+          Positioned(
+            right: 20,
+            top: -8,
+            child: SizedBox(
+              width: 36,
+              height: 36,
+              child: CustomPaint(
+                painter: _StarPainter(color: _starColor),
               ),
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
+}
+
+// ─── Inspo Card ──────────────────────────────────────────────────────────────
+
+class _InspoCard extends StatelessWidget {
+  final String title;
+  final String vibe;
+
+  const _InspoCard({required this.title, required this.vibe});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 6),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFDE08B),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: Colors.black87,
+              height: 1.3,
+            ),
+          ),
+          const Spacer(),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('tap the Post tab to create this quest!',
+                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                    backgroundColor: const Color(0xFF455A64),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                'create sidequest',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFFE8837C),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Star Painter ────────────────────────────────────────────────────────────
+
+class _StarPainter extends CustomPainter {
+  final Color color;
+  _StarPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    const int points = 4;
+    final innerRadius = radius * 0.38;
+
+    for (int i = 0; i < points * 2; i++) {
+      final angle = (i * math.pi / points) - math.pi / 2;
+      final r = i.isEven ? radius : innerRadius;
+      final x = center.dx + r * math.cos(angle);
+      final y = center.dy + r * math.sin(angle);
+
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

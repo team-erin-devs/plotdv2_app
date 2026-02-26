@@ -5,7 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'authenticated_api_service.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://147.182.145.237:8000/api/auth';
+  // Use http://10.0.2.2:8000/api/auth for Android emulator, and http://127.0.0.1:8000/api/auth for iOS Simulator/Web
+  static const String baseUrl = 'http://127.0.0.1:8000/api/auth';
 
   Future<Map<String, dynamic>> register({
     required String username,

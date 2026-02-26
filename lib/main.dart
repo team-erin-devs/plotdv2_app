@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:team_erin_app/screens/home_screen.dart';
-import 'package:team_erin_app/screens/challenges_screen.dart';
+import 'package:team_erin_app/screens/sidequest_feed_screen.dart';
 import 'package:team_erin_app/screens/leaderboard_screen.dart';
 import 'package:team_erin_app/screens/ranking_screen.dart';
 import 'package:team_erin_app/screens/login_screen.dart';
@@ -10,7 +10,7 @@ import 'package:team_erin_app/screens/profile_screen.dart';
 import 'package:team_erin_app/screens/welcome_screen.dart';
 import 'package:team_erin_app/screens/intro_video_screen.dart';
 import 'package:team_erin_app/widgets/auth_guard.dart';
-import 'package:team_erin_app/screens/edit_sidequest_screen.dart';
+import 'package:team_erin_app/screens/post_sidequest_screen.dart';
 import 'package:team_erin_app/screens/sidequest_confirmation_screen.dart';
 import 'services/auth_service.dart';
 
@@ -57,8 +57,6 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/home': (context) => AuthGuard(child: const MainNavigation()),
-        '/challenges': (context) => AuthGuard(child: const ChallengesScreen()),
-        '/challenges/detail': (context) => AuthGuard(child: const ChallengesScreen()),
         '/sidequest-confirmation': (context) => const SidequestConfirmationScreen(),
       },
     );
@@ -115,8 +113,8 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<Widget> _pages = [
     const HomeScreen(), // 0 = Home
-    const ChallengesScreen(), // 1 = Missions
-    const EditSidequestScreen(), // 2 = Sidequests
+    const SidequestFeedScreen(), // 1 = Feed
+    const PostSidequestScreen(), // 2 = Sidequests
     const LeaderboardScreen(), // 3 = Ranking
     const ProfileScreen(), // 4 = Profile
   ];
@@ -146,8 +144,8 @@ class _MainNavigationState extends State<MainNavigation> {
         onTap: _onItemTapped,
         items: const [
           _NeoNavItem(icon: Icons.home_rounded, label: 'Home'),
-          _NeoNavItem(icon: Icons.flag_circle_rounded, label: 'Missions'),
-          _NeoNavItem(icon: Icons.explore_rounded, label: 'Sidequests'),
+          _NeoNavItem(icon: Icons.dynamic_feed_rounded, label: 'Feed'),
+          _NeoNavItem(icon: Icons.add_circle_outline_rounded, label: 'Post'),
           _NeoNavItem(icon: Icons.bar_chart_rounded, label: 'Ranking'),
           _NeoNavItem(icon: Icons.person_rounded, label: 'Profile'),
         ],
