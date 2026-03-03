@@ -4,15 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../services/authenticated_api_service.dart';
+import '../widgets/sidequest_card.dart';
+import 'sidequest_detail_screen.dart';
 
 // ─── Sidequest model ─────────────────────────────────────────────────────────
 
 class _HomeSidequest {
   final int id;
   final String title;
+  final String creatorFirstName;
   final String creatorUsername;
   final String vibe;
   final DateTime eventDatetime;
+  final String location;
   final int participantCount;
   final int maxPeople;
   final String? userStatus;
@@ -21,9 +25,11 @@ class _HomeSidequest {
   _HomeSidequest({
     required this.id,
     required this.title,
+    required this.creatorFirstName,
     required this.creatorUsername,
     required this.vibe,
     required this.eventDatetime,
+    required this.location,
     required this.participantCount,
     required this.maxPeople,
     this.userStatus,
@@ -34,9 +40,13 @@ class _HomeSidequest {
     return _HomeSidequest(
       id: json['id'],
       title: json['title'] ?? '',
+      creatorFirstName: json['creator']?['first_name']?.isNotEmpty == true
+          ? json['creator']['first_name']
+          : (json['creator']?['username'] ?? 'friend'),
       creatorUsername: json['creator']?['username'] ?? 'unknown',
       vibe: json['vibe'] ?? 'chill',
       eventDatetime: DateTime.parse(json['event_datetime']),
+      location: json['location'] ?? 'Location TBD',
       participantCount: json['participant_count'] ?? 0,
       maxPeople: json['max_people'] ?? 5,
       userStatus: json['user_status'],
@@ -165,63 +175,39 @@ class _HomeScreenState extends State<HomeScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text.rich(
-                                  TextSpan(children: [
-                                    TextSpan(
-                                      text: 'Plot',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.w800,
-                                        color: const Color(0xFF455A64),
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: 'd',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.w800,
-                                        color: const Color(0xFFFFB300),
-                                      ),
-                                    ),
-                                    const TextSpan(
-                                      text: '✳',
-                                      style: TextStyle(fontSize: 20, color: Color(0xFFE8837C)),
-                                    ),
-                                  ]),
-                                ),
-                              ],
-                            ),
-                            Container(
-                              decoration: const BoxDecoration(
-                                color: Colors.black,
-                                shape: BoxShape.circle,
-                              ),
-                              padding: const EdgeInsets.all(12),
-                              child: Stack(
-                                children: [
-                                  const Icon(Icons.notifications_outlined,
-                                      color: Colors.white, size: 22),
-                                  Positioned(
-                                    right: 0,
-                                    top: 0,
-                                    child: Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFFE8837C),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
+                            const Icon(Icons.add, color: Colors.black, size: 28),
+                            Text.rich(
+                              TextSpan(children: [
+                                TextSpan(
+                                  text: 'Plot',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF1E1E1E),
                                   ),
-                                ],
-                              ),
+                                ),
+                                TextSpan(
+                                  text: 'd',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF1E1E1E), // changed from yellow
+                                  ),
+                                ),
+                                WidgetSpan(
+                                  alignment: PlaceholderAlignment.top,
+                                  child: Image.asset(
+                                    'assets/images/asterik.png',
+                                    width: 20,
+                                    color: const Color(0xFF1E1E1E),
+                                  ),
+                                ),
+                              ]),
                             ),
+                            const Icon(Icons.notifications_outlined, color: Colors.black, size: 28),
                           ],
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 32),
 
                         // ── Greeting ──
                         Text(
@@ -229,17 +215,35 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
-                            color: Colors.black54,
+                            color: const Color(0xFF888888),
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Your active quests',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.black,
-                          ),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'Today\'s quests',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF1E1E1E),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text(
+                                'See All',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF888888),
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 20),
 
@@ -255,7 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             child: Column(
                               children: [
-                                const Text('✳', style: TextStyle(fontSize: 36, color: Color(0xFFE8837C))),
+                                Image.asset('assets/images/asterik.png', width: 36, color: const Color(0xFFE8837C)),
                                 const SizedBox(height: 10),
                                 Text(
                                   'no active quests!',
@@ -278,13 +282,31 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           )
                         else
-                          ..._activeQuests.map((sq) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _ActiveQuestCard(
-                              sidequest: sq,
-                              currentUsername: _username,
-                            ),
-                          )),
+                          ..._activeQuests.map((sq) {
+                            SidequestType type = SidequestType.own;
+                            if (sq.isFriend) type = SidequestType.friend;
+                            if (sq.isPublic) type = SidequestType.community;
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: SidequestCard(
+                                creatorName: sq.isOwn ? (_firstName ?? 'You') : sq.creatorFirstName,
+                                creatorUsername: sq.isOwn ? (_username ?? 'you') : sq.creatorUsername,
+                                title: sq.title,
+                                eventDatetime: sq.eventDatetime,
+                                location: sq.location,
+                                type: type,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => SidequestDetailScreen(sidequestId: sq.id),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          }),
 
                         const SizedBox(height: 40),
 
@@ -380,141 +402,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ─── Active Quest Card ───────────────────────────────────────────────────────
-
-class _ActiveQuestCard extends StatelessWidget {
-  final _HomeSidequest sidequest;
-  final String? currentUsername;
-
-  const _ActiveQuestCard({
-    required this.sidequest,
-    this.currentUsername,
-  });
-
-  // Own = yellow, Friends = pink, Public = blue
-  Color get _cardColor {
-    if (sidequest.isOwn) return const Color(0xFFFDE08B); // yellow
-    if (sidequest.isPublic) return const Color(0xFFDDE9F7); // blue
-    return const Color(0xFFFDE4E1); // pink (friends)
-  }
-
-  Color get _starColor {
-    if (sidequest.isOwn) return const Color(0xFFFFB300);
-    if (sidequest.isPublic) return const Color(0xFF64A8DB);
-    return const Color(0xFFE8837C);
-  }
-
-  Color get _dotColor {
-    if (sidequest.isOwn) return const Color(0xFFFFB300);
-    if (sidequest.isPublic) return const Color(0xFF90CAF9);
-    return const Color(0xFFF8BBB1);
-  }
-
-  String get _questLabel {
-    if (sidequest.isOwn) return 'your quest';
-    return '${sidequest.creatorUsername}\'s quest';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final dateStr = DateFormat('MMMM d, yyyy')
-        .format(sidequest.eventDatetime.toLocal())
-        .toLowerCase();
-    final timeStr = DateFormat('h:mm a')
-        .format(sidequest.eventDatetime.toLocal())
-        .toLowerCase();
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: _cardColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Quest label + username
-              Row(
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: _dotColor,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _questLabel,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      Text(
-                        '@${sidequest.isOwn ? (currentUsername ?? sidequest.creatorUsername) : sidequest.creatorUsername}',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black38,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-
-              // Title
-              Text(
-                sidequest.title,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 6),
-
-              // Info line
-              Text(
-                '$dateStr · $timeStr · ${sidequest.vibe}',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black38,
-                ),
-              ),
-            ],
-          ),
-
-          // Decorative star
-          Positioned(
-            right: 20,
-            top: -8,
-            child: SizedBox(
-              width: 36,
-              height: 36,
-              child: CustomPaint(
-                painter: _StarPainter(color: _starColor),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // ─── Inspo Card ──────────────────────────────────────────────────────────────
 
 class _InspoCard extends StatelessWidget {
@@ -525,23 +412,32 @@ class _InspoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Capitalize first letter
+    final displayTitle = title.isNotEmpty 
+        ? '${title[0].toUpperCase()}${title.substring(1)}' 
+        : title;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 6),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFFDE08B),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: const Color(0xFFFDE08B),
+          width: 3.0,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            title,
+            displayTitle,
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: Colors.black87,
-              height: 1.3,
+              color: const Color(0xFF1E1E1E),
+              height: 1.2,
             ),
           ),
           const Spacer(),
@@ -560,20 +456,20 @@ class _InspoCard extends StatelessWidget {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
+                backgroundColor: const Color(0xFFFFB300),
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 elevation: 0,
               ),
               child: Text(
-                'create sidequest',
+                'Create Sidequest',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFFE8837C),
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -584,40 +480,3 @@ class _InspoCard extends StatelessWidget {
   }
 }
 
-// ─── Star Painter ────────────────────────────────────────────────────────────
-
-class _StarPainter extends CustomPainter {
-  final Color color;
-  _StarPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
-    const int points = 4;
-    final innerRadius = radius * 0.38;
-
-    for (int i = 0; i < points * 2; i++) {
-      final angle = (i * math.pi / points) - math.pi / 2;
-      final r = i.isEven ? radius : innerRadius;
-      final x = center.dx + r * math.cos(angle);
-      final y = center.dy + r * math.sin(angle);
-
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}

@@ -201,282 +201,203 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text.rich(
-                                  TextSpan(children: [
-                                    TextSpan(
-                                      text: 'Plot',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.w800,
-                                        color: const Color(0xFF455A64),
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: 'd',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.w800,
-                                        color: const Color(0xFFFFB300),
-                                      ),
-                                    ),
-                                    const TextSpan(
-                                      text: '✳',
-                                      style: TextStyle(fontSize: 20, color: Color(0xFFE8837C)),
-                                    ),
-                                  ]),
-                                ),
-                                Text(
-                                  '*do it for the plot',
+                            const Icon(Icons.add, size: 28, color: Colors.black87),
+                            Text.rich(
+                              TextSpan(children: [
+                                TextSpan(
+                                  text: 'Plot',
                                   style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFFFFB300),
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF1E1E1E),
                                   ),
                                 ),
-                              ],
-                            ),
-                            // Hamburger menu (only on own profile)
-                            if (_isOwnProfile)
-                              PopupMenuButton<String>(
-                                icon: const Icon(Icons.menu, color: Colors.black, size: 28),
-                                onSelected: (value) {
-                                  if (value == 'logout') _handleLogout();
-                                },
-                                itemBuilder: (context) => [
-                                  PopupMenuItem(
-                                    value: 'logout',
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.logout, size: 18, color: Colors.redAccent),
-                                        const SizedBox(width: 8),
-                                        Text('Log out',
-                                            style: GoogleFonts.plusJakartaSans(
-                                                fontWeight: FontWeight.w600)),
-                                      ],
-                                    ),
+                                TextSpan(
+                                  text: 'd',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF1E1E1E),
                                   ),
-                                ],
-                              )
-                            else
-                              IconButton(
-                                onPressed: () => Navigator.pop(context),
-                                icon: const Icon(Icons.close, size: 26),
-                              ),
+                                ),
+                                WidgetSpan(
+                                  alignment: PlaceholderAlignment.top,
+                                  child: Image.asset(
+                                    'assets/images/asterik.png',
+                                    width: 20,
+                                    color: const Color(0xFF1E1E1E),
+                                  ),
+                                ),
+                              ]),
+                            ),
+                            const Icon(Icons.notifications_none, size: 28, color: Colors.black87),
                           ],
                         ),
                         const SizedBox(height: 28),
 
                         // ── Profile Section ──
                         Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Profile picture
-                            CircleAvatar(
-                              radius: 44,
-                              backgroundColor: const Color(0xFFE0E0E0),
-                              backgroundImage: _profilePictureUrl.isNotEmpty
-                                  ? NetworkImage(_profilePictureUrl)
-                                  : null,
-                              child: _profilePictureUrl.isEmpty
-                                  ? Icon(Icons.person, size: 44, color: Colors.grey[500])
-                                  : null,
-                            ),
-                            const SizedBox(width: 16),
-                            // Name + @username
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Stack(
+                              clipBehavior: Clip.none,
                               children: [
-                                Text(
-                                  _displayName,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.black,
-                                  ),
+                                CircleAvatar(
+                                  radius: 44,
+                                  backgroundColor: const Color(0xFFE0E0E0),
+                                  backgroundImage: _profilePictureUrl.isNotEmpty
+                                      ? NetworkImage(_profilePictureUrl)
+                                      : null,
+                                  child: _profilePictureUrl.isEmpty
+                                      ? Icon(Icons.person, size: 44, color: Colors.grey[500])
+                                      : null,
                                 ),
-                                Text(
-                                  '@$_username',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black38,
+                                Positioned(
+                                  bottom: -4,
+                                  right: -4,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFB300),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: const Color(0xFFF8F4F0), width: 3),
+                                    ),
+                                    child: Text(
+                                      '7',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                        height: 1.0,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                            const Spacer(),
-                            // Following + followers inline
-                            _buildStatColumn('$_friendsCount', 'following'),
                             const SizedBox(width: 16),
-                            _buildStatColumn('$_friendsCount', 'followers'),
+                            // Right side stats and buttons
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Stats Row
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _displayName,
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                          Text(
+                                            '@$_username',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.black38,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      _buildStatColumn('$_friendsCount', 'friends'),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  // Buttons Row
+                                  Row(
+                                    children: [
+                                      if (_isOwnProfile)
+                                        Expanded(
+                                          child: OutlinedButton(
+                                            onPressed: () {},
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: Colors.black,
+                                              side: const BorderSide(color: Color(0xFF2D2D2D)),
+                                              padding: const EdgeInsets.symmetric(vertical: 8),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              'Edit profile',
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                      else
+                                        Expanded(
+                                          child: ElevatedButton(
+                                            onPressed: (_isFriend || _pendingSent || _isFollowLoading) ? null : _handleFollow,
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: _isFriend ? const Color(0xFF66BB6A) : _pendingSent ? const Color(0xFF90A4AE) : const Color(0xFFFFB300),
+                                              disabledBackgroundColor: _isFriend ? const Color(0xFF66BB6A).withOpacity(0.7) : const Color(0xFF90A4AE).withOpacity(0.7),
+                                              foregroundColor: Colors.white,
+                                              disabledForegroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(vertical: 8),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              elevation: 0,
+                                            ),
+                                            child: _isFollowLoading
+                                                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                                : Text(
+                                                    _isFriend ? 'friends ✓' : _pendingSent ? 'request sent' : 'follow',
+                                                    style: GoogleFonts.plusJakartaSans(
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w800,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                          ),
+                                        ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: OutlinedButton(
+                                          onPressed: () {},
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: Colors.black,
+                                            side: const BorderSide(color: Color(0xFF2D2D2D)),
+                                            padding: const EdgeInsets.symmetric(vertical: 8),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'Share profile',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // ── Buttons ──
-                        if (_isOwnProfile)
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: () {},
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.black,
-                                    side: const BorderSide(color: Color(0xFFD0D0D0)),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'edit profile',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: () {},
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.black,
-                                    side: const BorderSide(color: Color(0xFFD0D0D0)),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'share profile',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        else
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: (_isFriend || _pendingSent || _isFollowLoading)
-                                  ? null
-                                  : _handleFollow,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _isFriend
-                                    ? const Color(0xFF66BB6A)
-                                    : _pendingSent
-                                        ? const Color(0xFF90A4AE)
-                                        : const Color(0xFF64A8DB),
-                                disabledBackgroundColor: _isFriend
-                                    ? const Color(0xFF66BB6A).withOpacity(0.7)
-                                    : const Color(0xFF90A4AE).withOpacity(0.7),
-                                foregroundColor: Colors.white,
-                                disabledForegroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: _isFollowLoading
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : Text(
-                                      _isFriend
-                                          ? 'friends ✓'
-                                          : _pendingSent
-                                              ? 'request sent'
-                                              : 'follow',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        const SizedBox(height: 32),
-
-                        // ── Today's Sidequest ──
-                        Text(
-                          'today\'s sidequest',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        if (_activeSidequests.isEmpty)
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: const Color(0xFFE8E0D8)),
-                            ),
-                            child: Text(
-                              'no quests today — go post one!',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black38,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          )
-                        else
-                          _buildTodayQuestCard(_activeSidequests.first),
-
-                        const SizedBox(height: 20),
-
-                        // ── Stats Cards ──
-                        IntrinsicHeight(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(
-                                child: _buildBigStatCard(
-                                  'sidequests completed',
-                                  '$_sidequestsCompleted',
-                                  const Color(0xFFF8BBB1), // pink
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildBigStatCard(
-                                  'sidequests hosted',
-                                  '$_sidequestsHosted',
-                                  const Color(0xFFFFB300), // yellow/amber
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
                         const SizedBox(height: 32),
 
                         // ── Interests ──
                         Text(
-                          'interests',
+                          'Interests',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w800,
                             color: Colors.black,
                           ),
                         ),
@@ -486,12 +407,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           runSpacing: 8,
                           children: _interests.map((interest) {
                             return Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: const Color(0xFFD0D0D0)),
+                                color: const Color(0xFFFFF3D4),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: const Color(0xFFFFB300)),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -503,7 +423,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     interest['label']!,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
-                                      fontWeight: FontWeight.w600,
+                                      fontWeight: FontWeight.w700,
                                       color: Colors.black87,
                                     ),
                                   ),
@@ -516,31 +436,72 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                         // ── Sidequest Gallery ──
                         Text(
-                          'sidequest gallery',
+                          'Sidequest Gallery',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w800,
                             color: Colors.black,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                         GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                            childAspectRatio: 0.85,
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
+                            childAspectRatio: 1.15, // Increase to make them less tall
                           ),
-                          itemCount: 9,
+                          itemCount: _activeSidequests.isEmpty ? 1 : _activeSidequests.length,
                           itemBuilder: (context, index) {
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFDE08B).withOpacity(0.5),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                            if (_activeSidequests.isEmpty) {
+                               return Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFFE8E0D8)),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    'no quests yet!',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black38,
+                                    ),
+                                  ),
+                               );
+                            }
+
+                            final quest = _activeSidequests[index];
+                            final title = quest['title'] ?? 'untitled';
+                            final creatorUsername = quest['creator']?['username'] ?? 'unknown';
+                            final vibe = quest['vibe'] ?? '';
+                            final vibes = vibe.toString().isNotEmpty ? [vibe.toString()] : <String>[];
+
+                            // Determine colors
+                            final colors = [
+                               const Color(0xFFFFF3D4), // yellow
+                               const Color(0xFFDDE9F7), // light blue
+                               const Color(0xFFFDE4E1), // salmon 
+                               const Color(0xFFDDE9F7), // light blue
+                            ];
+                            final accentColors = [
+                               const Color(0xFFFFB300), // dark yellow
+                               const Color(0xFF64A8DB), // dark blue
+                               const Color(0xFFE8837C), // dark pink
+                               const Color(0xFF64A8DB), // dark blue
+                            ];
+
+                            return GalleryStickyNote(
+                               color: colors[index % colors.length],
+                               accentColor: accentColors[index % accentColors.length],
+                               title: title,
+                               hostedBy: creatorUsername == _username ? 'you' : creatorUsername,
+                               tags: vibes,
+                               typeEmoji: '📌$vibe',
                             );
                           },
                         ),
@@ -560,8 +521,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Text(
           value,
           style: GoogleFonts.plusJakartaSans(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
+            fontSize: 20,
+            fontWeight: FontWeight.w400,
             color: Colors.black,
           ),
         ),
@@ -576,104 +537,160 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ],
     );
   }
+}
 
-  Widget _buildTodayQuestCard(Map<String, dynamic> quest) {
-    final creatorUsername = quest['creator']?['username'] ?? 'unknown';
-    final title = quest['title'] ?? '';
-    final vibe = quest['vibe'] ?? '';
-    final eventDatetime = quest['event_datetime'] != null
-        ? DateTime.parse(quest['event_datetime'])
-        : DateTime.now();
-    final dateStr = DateFormat('MMM d').format(eventDatetime.toLocal()).toLowerCase();
-    final timeStr = DateFormat('h:mm a').format(eventDatetime.toLocal()).toLowerCase();
+// ─── Custom Gallery Sticky Note Widget ──────────────────────────────────────
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF64A8DB),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Creator
-          Row(
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF90CAF9),
-                  shape: BoxShape.circle,
+class GalleryStickyNote extends StatelessWidget {
+  final Color color;
+  final Color accentColor;
+  final String title;
+  final String hostedBy;
+  final List<String> tags;
+  final String typeEmoji;
+  
+  const GalleryStickyNote({
+    super.key,
+    required this.color,
+    required this.accentColor,
+    required this.title,
+    required this.hostedBy,
+    required this.tags,
+    required this.typeEmoji,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        ClipPath(
+          clipper: _GalleryNoteClipper(),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    fontStyle: FontStyle.italic,
+                    color: const Color(0xFF1E1E1E),
+                    height: 1.1,
+                  ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '@$creatorUsername\'s',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white70,
+                const SizedBox(height: 4),
+                Text.rich(
+                  TextSpan(
+                     text: 'hosted by ',
+                     style: GoogleFonts.plusJakartaSans(
+                       fontSize: 11,
+                       fontWeight: FontWeight.w500,
+                       fontStyle: FontStyle.italic,
+                       color: const Color(0xFF1E1E1E),
+                     ),
+                     children: [
+                        TextSpan(
+                           text: hostedBy,
+                           style: const TextStyle(fontWeight: FontWeight.w800),
+                        )
+                     ]
+                  )
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          // Title
-          Text(
-            title,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
+                const SizedBox(height: 8),
+                Container(height: 1, color: const Color(0xFF1E1E1E).withOpacity(0.1)),
+                const Spacer(),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: tags.map((tag) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: accentColor,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                    child: Text(
+                      tag,
+                      style: GoogleFonts.plusJakartaSans(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w500),
+                    )
+                  )).toList(),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: accentColor, 
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                      child: Text(
+                        typeEmoji,
+                        style: GoogleFonts.plusJakartaSans(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w500),
+                      )
+                    ),
+                    const Icon(Icons.remove_red_eye_outlined, size: 16, color: Color(0xFF1E1E1E)),
+                  ],
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 6),
-          // Info
-          Text(
-            '$dateStr · $timeStr · $vibe',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.white60,
-            ),
-          ),
-        ],
-      ),
+        ),
+        Positioned(
+          top: 0,
+          right: 0, 
+          child: CustomPaint(
+              size: const Size(20,20),
+              painter: _FoldPainter(color: accentColor),
+          )
+        ),
+      ],
     );
   }
+}
 
-  Widget _buildBigStatCard(String label, String value, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 52,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              height: 1.0,
-            ),
-          ),
-        ],
-      ),
-    );
+class _GalleryNoteClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(size.width - 20, 0); 
+    path.lineTo(size.width, 20); 
+    path.lineTo(size.width, size.height);
+    path.lineTo(0, size.height);
+    path.close();
+    return path;
   }
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+class _FoldPainter extends CustomPainter {
+  final Color color;
+  _FoldPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    path.moveTo(0, 0); 
+    path.lineTo(0, size.height); 
+    path.lineTo(size.width, size.height); 
+    path.close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

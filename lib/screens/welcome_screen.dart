@@ -52,13 +52,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // Yellow asterisk icon
-                  Text(
-                    '✱',
-                    style: TextStyle(
-                      fontSize: 64,
-                      color: const Color(0xFFF5C542),
-                      fontWeight: FontWeight.w900,
-                    ),
+                  Image.asset(
+                    'assets/images/asterik.png',
+                    width: 50,
+                    color: const Color(0xFFF5C542),
                   ),
                   const SizedBox(width: 8),
                   // "Plotd" text
@@ -74,14 +71,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ),
                   // Smaller purple asterisk
                   Transform.translate(
-                    offset: const Offset(2, -16),
-                    child: Text(
-                      '*',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFFA8A0C8),
-                      ),
+                    offset: const Offset(2, -18),
+                    child: Image.asset(
+                      'assets/images/asterik.png',
+                      width: 24,
+                      color: const Color(0xFFA8A0C8),
                     ),
                   ),
                 ],

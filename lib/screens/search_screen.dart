@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/authenticated_api_service.dart';
+import '../widgets/sidequest_card.dart';
 import 'profile_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -122,7 +123,9 @@ class _SearchScreenState extends State<SearchScreen> {
                     children: [
                       // ── Plotd Header ──
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          const Icon(Icons.add, size: 28, color: Colors.black87),
                           Text.rich(
                             TextSpan(children: [
                               TextSpan(
@@ -130,7 +133,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 28,
                                   fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF455A64),
+                                  color: const Color(0xFF1E1E1E), // all black
                                 ),
                               ),
                               TextSpan(
@@ -138,28 +141,21 @@ class _SearchScreenState extends State<SearchScreen> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 28,
                                   fontWeight: FontWeight.w800,
-                                  color: const Color(0xFFFFB300),
+                                  color: const Color(0xFF1E1E1E), // all black
                                 ),
                               ),
-                              const TextSpan(
-                                text: '✳',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Color(0xFFE8837C),
+                              WidgetSpan(
+                                alignment: PlaceholderAlignment.top,
+                                child: Image.asset(
+                                  'assets/images/asterik.png',
+                                  width: 20,
+                                  color: const Color(0xFF1E1E1E),
                                 ),
                               ),
                             ]),
                           ),
+                          const Icon(Icons.notifications_none, size: 28, color: Colors.black87),
                         ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '*do it for the plot',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFFFFB300),
-                        ),
                       ),
                       const SizedBox(height: 20),
 
@@ -249,8 +245,7 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Center(
           child: Column(
             children: [
-              const Text('✳',
-                  style: TextStyle(fontSize: 40, color: Color(0xFFE8837C))),
+              Image.asset('assets/images/asterik.png', width: 40, color: const Color(0xFFE8837C)),
               const SizedBox(height: 10),
               Text(
                 'no users found',
@@ -368,7 +363,7 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
           const SizedBox(height: 14),
           SizedBox(
-            height: 185,
+            height: 210, // increased to fit the larger styling
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _topUsers.length,
@@ -379,10 +374,9 @@ class _SearchScreenState extends State<SearchScreen> {
           const SizedBox(height: 28),
         ],
 
-        // ── Trending tags ──
         if (_trendingTags.isNotEmpty) ...[
           Text(
-            'trending tags',
+            'Trending tags',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 16,
               fontWeight: FontWeight.w800,
@@ -391,30 +385,30 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
           const SizedBox(height: 14),
           Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 12,
+            runSpacing: 12,
             children: _trendingTags.map((t) {
               final tag = t['tag'] as String;
-              final emoji = _vibeEmojis[tag] ?? '✳';
+              final emoji = _vibeEmojis[tag] ?? '';
               return Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFE0E0E0)),
+                  color: const Color(0xFFE8837C).withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(emoji, style: const TextStyle(fontSize: 16)),
-                    const SizedBox(width: 6),
+                    if (emoji.isNotEmpty) ...[
+                      Text(emoji, style: const TextStyle(fontSize: 13)),
+                      const SizedBox(width: 6),
+                    ],
                     Text(
                       tag,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: Colors.white,
                       ),
                     ),
                   ],
@@ -422,13 +416,12 @@ class _SearchScreenState extends State<SearchScreen> {
               );
             }).toList(),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 36),
         ],
 
-        // ── Sidequests you may like ──
         if (_suggestedSidequests.isNotEmpty) ...[
           Text(
-            'sidequests you may like',
+            'Sidequests you may like',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 16,
               fontWeight: FontWeight.w800,
@@ -436,7 +429,22 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          ..._suggestedSidequests.map((sq) => _buildSuggestedCard(sq)),
+          // We only display one card in this mock layout, or side scroll. 
+          // The mock shows 1 with pagination dots. Let's show the first and dots.
+          _buildSuggestedCard(_suggestedSidequests.first),
+          
+          const SizedBox(height: 16),
+          // Pagination Dots (static for mockup match)
+          Row(
+             mainAxisAlignment: MainAxisAlignment.center,
+             children: [
+                Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFC4C4C4), shape: BoxShape.circle)),
+                const SizedBox(width: 8),
+                Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF1E1E1E), shape: BoxShape.circle)),
+                const SizedBox(width: 8),
+                Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFC4C4C4), shape: BoxShape.circle)),
+             ],
+          ),
         ],
 
         const SizedBox(height: 40),
@@ -467,162 +475,106 @@ class _SearchScreenState extends State<SearchScreen> {
         );
       },
       child: Container(
-      width: 140,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Avatar
-          CircleAvatar(
-            radius: 32,
-            backgroundColor: const Color(0xFFEAE6E0),
-            backgroundImage: profilePic != null && profilePic.isNotEmpty
-                ? NetworkImage(profilePic)
-                : null,
-            child: profilePic == null || profilePic.isEmpty
-                ? Text(
-                    username.substring(0, 1).toUpperCase(),
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF455A64),
-                    ),
-                  )
-                : null,
-          ),
-          const SizedBox(height: 10),
-          // Display name
-          Text(
-            displayName,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: Colors.black87,
+        width: 140,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFC4D9E2), // light blue matching hi-fi
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Avatar
+            CircleAvatar(
+              radius: 40,
+              backgroundColor: Colors.white,
+              backgroundImage: profilePic != null && profilePic.isNotEmpty
+                  ? NetworkImage(profilePic)
+                  : null,
+              child: profilePic == null || profilePic.isEmpty
+                  ? Text(
+                      username.substring(0, 1).toUpperCase(),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF455A64),
+                      ),
+                    )
+                  : null,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          // @username
-          Text(
-            '@$username',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: Colors.black38,
+            const SizedBox(height: 12),
+            // Display name
+            Text(
+              displayName,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF1E1E1E),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const Spacer(),
-          // Follow button
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF455A64),
-              borderRadius: BorderRadius.circular(20),
+            // @username
+            Text(
+              '@$username',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF1E1E1E),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            child: Center(
-              child: Text(
-                'follow',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
+            const Spacer(),
+            // Follow button
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF64A8DB), // Match sidequest 'community' dark blue
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Center(
+                child: Text(
+                  'Follow',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 
   // ── Suggested Sidequest Card ──
   Widget _buildSuggestedCard(Map<String, dynamic> sq) {
-    final vibeColors = {
-      'chill': const Color(0xFFDDE9F7),
-      'active': const Color(0xFFFDE4E1),
-      'social': const Color(0xFFFDE08B),
-      'fun': const Color(0xFFE1F5E0),
-      'productive': const Color(0xFFF3E8FF),
-    };
-    final dotColors = {
-      'chill': const Color(0xFF64A8DB),
-      'active': const Color(0xFFE8837C),
-      'social': const Color(0xFFFFB300),
-      'fun': const Color(0xFF66BB6A),
-      'productive': const Color(0xFF9C7BD8),
-    };
-
-    final vibe = sq['vibe'] as String? ?? 'chill';
-    final cardColor = vibeColors[vibe] ?? const Color(0xFFFDE4E1);
-    final dotColor = dotColors[vibe] ?? const Color(0xFFE8837C);
+    // Determine the type: own, friend, or community
+    // For now we assume if it's suggested it's a friend (to show pink in mock)
+    // You could dynamically use `postToCampusBoard` logic too if available
+    SidequestType sidequestType = SidequestType.friend;
+    
+    // Fallbacks if location/date missing in the search object (unlikely if populated, but safe)
+    DateTime eventDatetime;
+    try {
+      eventDatetime = DateTime.parse(sq['event_datetime'] as String);
+    } catch (_) {
+      eventDatetime = DateTime.now().add(const Duration(days: 1));
+    }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Creator
-            Row(
-              children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: dotColor,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '@${sq['creator_username']}\'s',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black54,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Title
-            Text(
-              sq['title'] ?? '',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: Colors.black,
-              ),
-            ),
-            if ((sq['description'] as String?)?.isNotEmpty == true) ...[
-              const SizedBox(height: 4),
-              Text(
-                sq['description'],
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black54,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ],
-        ),
+      padding: const EdgeInsets.only(bottom: 0),
+      child: SidequestCard(
+        creatorName: sq['creator_first_name'] ?? sq['creator_username'] ?? 'Friend',
+        creatorUsername: sq['creator_username'] ?? 'username',
+        title: sq['title'] ?? '',
+        eventDatetime: eventDatetime,
+        location: sq['location'] ?? 'Location TBD',
+        type: sidequestType,
       ),
     );
   }

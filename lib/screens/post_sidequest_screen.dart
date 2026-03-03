@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
 import 'dart:math' as math;
+import 'package:intl/intl.dart';
 import '../services/authenticated_api_service.dart';
 
 class PostSidequestScreen extends StatefulWidget {
@@ -13,75 +14,116 @@ class PostSidequestScreen extends StatefulWidget {
 
 class _PostSidequestScreenState extends State<PostSidequestScreen> {
   final TextEditingController _titleController = TextEditingController();
-  String selectedVibe = 'active';
-  String selectedTime = '2:00 pm';
-  String selectedDate = 'tomorrow';
+  final TextEditingController _locationController = TextEditingController();
+  
+  String selectedVibe = 'productive';
   int numPeople = 3;
   bool postToBoard = false;
   bool _isPosting = false;
 
-  final Map<String, int> _timeHourMap = {
-    '9:00 am': 9, '10:00 am': 10, '11:00 am': 11, '12:00 pm': 12,
-    '1:00 pm': 13, '2:00 pm': 14, '3:00 pm': 15, '4:00 pm': 16,
-    '5:00 pm': 17, '6:00 pm': 18, '7:00 pm': 19, '8:00 pm': 20,
-  };
+  DateTime? _selectedDate;
+  TimeOfDay? _startTime;
+  TimeOfDay? _endTime;
 
-  DateTime _resolveDateTime() {
-    final now = DateTime.now();
-    DateTime date;
-    switch (selectedDate) {
-      case 'today':
-        date = now;
-        break;
-      case 'tomorrow':
-        date = now.add(const Duration(days: 1));
-        break;
-      case 'this weekend':
-        // Next Saturday
-        int daysUntilSaturday = (DateTime.saturday - now.weekday) % 7;
-        if (daysUntilSaturday == 0) daysUntilSaturday = 7;
-        date = now.add(Duration(days: daysUntilSaturday));
-        break;
-      case 'next week':
-        date = now.add(const Duration(days: 7));
-        break;
-      default:
-        date = now.add(const Duration(days: 1));
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _locationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _selectDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: const ColorScheme.light(primary: Color(0xFFFFB300)),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
     }
+  }
 
-    final hour = _timeHourMap[selectedTime] ?? 14;
-    return DateTime(date.year, date.month, date.day, hour, 0);
+  Future<void> _selectTime(bool isStart) async {
+    final initial = isStart 
+        ? (_startTime ?? const TimeOfDay(hour: 14, minute: 0))
+        : (_endTime ?? const TimeOfDay(hour: 17, minute: 0));
+        
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: const ColorScheme.light(primary: Color(0xFFFFB300)),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStart) _startTime = picked;
+        else _endTime = picked;
+      });
+    }
   }
 
   Future<void> _postSidequest() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('give your quest a name!',
-              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      _showError('give your quest a name!');
+      return;
+    }
+    if (_selectedDate == null || _startTime == null) {
+      _showError('please pick a date and start time!');
       return;
     }
 
     setState(() => _isPosting = true);
 
     try {
-      final eventDatetime = _resolveDateTime();
+      final startDateTime = DateTime(
+        _selectedDate!.year, _selectedDate!.month, _selectedDate!.day,
+        _startTime!.hour, _startTime!.minute,
+      );
+      
+      DateTime? endDateTime;
+      if (_endTime != null) {
+        endDateTime = DateTime(
+          _selectedDate!.year, _selectedDate!.month, _selectedDate!.day,
+          _endTime!.hour, _endTime!.minute,
+        );
+        // Handle end time next day
+        if (endDateTime.isBefore(startDateTime)) {
+          endDateTime = endDateTime.add(const Duration(days: 1));
+        }
+      }
+
+      final payload = {
+        'title': title,
+        'event_datetime': startDateTime.toUtc().toIso8601String(),
+        'vibe': selectedVibe,
+        'max_people': numPeople,
+        'post_to_campus_board': postToBoard,
+        'location': _locationController.text.trim(),
+      };
+      
+      if (endDateTime != null) {
+        payload['end_datetime'] = endDateTime.toUtc().toIso8601String();
+      }
 
       final response = await AuthenticatedApiService.authenticatedPost(
         '/api/sidequests/',
-        {
-          'title': title,
-          'event_datetime': eventDatetime.toUtc().toIso8601String(),
-          'vibe': selectedVibe,
-          'max_people': numPeople,
-          'post_to_campus_board': postToBoard,
-        },
+        payload,
       );
 
       if (response.statusCode == 201) {
@@ -89,10 +131,12 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
           Navigator.pushNamed(context, '/sidequest-confirmation');
           // Reset form
           _titleController.clear();
+          _locationController.clear();
           setState(() {
-            selectedVibe = 'active';
-            selectedTime = '2:00 pm';
-            selectedDate = 'tomorrow';
+            selectedVibe = 'productive';
+            _selectedDate = null;
+            _startTime = null;
+            _endTime = null;
             numPeople = 3;
             postToBoard = false;
           });
@@ -102,480 +146,449 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
         throw Exception(errorBody.toString());
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('something went wrong: $e',
-                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
+      _showError('something went wrong: $e');
     } finally {
       if (mounted) setState(() => _isPosting = false);
     }
   }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    super.dispose();
+  
+  void _showError(String message) {
+     if (!mounted) return;
+     ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
   }
 
   @override
   Widget build(BuildContext context) {
     return Theme(
       data: ThemeData.light().copyWith(
-        scaffoldBackgroundColor: Colors.white,
+        scaffoldBackgroundColor: const Color(0xFFF8F4F0), // slight off white
         textTheme: GoogleFonts.plusJakartaSansTextTheme(),
       ),
       child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          automaticallyImplyLeading: false,
-          title: Text(
-            'post a sidequest',
-            style: GoogleFonts.plusJakartaSans(
-              color: Colors.black,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          centerTitle: true,
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Yellow Card ──
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFDE08B),
-                  borderRadius: BorderRadius.circular(12),
+        body: SafeArea(
+           child: Column(
+             children: [
+                // ── Header ──
+                Padding(
+                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                   child: Row(
+                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                     children: [
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.black87, size: 28),
+                          onPressed: () => Navigator.pop(context),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        Text.rich(
+                           TextSpan(children: [
+                              TextSpan(
+                                 text: 'Plot',
+                                 style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF1E1E1E),
+                                 ),
+                              ),
+                              TextSpan(
+                                 text: 'd',
+                                 style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF1E1E1E),
+                                 ),
+                              ),
+                              WidgetSpan(
+                                alignment: PlaceholderAlignment.top,
+                                child: Image.asset(
+                                  'assets/images/asterik.png',
+                                  width: 18,
+                                  color: const Color(0xFF1E1E1E),
+                                ),
+                              ),
+                           ]),
+                        ),
+                        const SizedBox(width: 28), // Balance for centering
+                     ],
+                   ),
                 ),
-                child: Stack(
-                  children: [
-                    Column(
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'what\'s the quest?',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black,
+                        // ── Yellow sticky note for title ──
+                        Container(
+                          width: double.infinity,
+                          height: 180, // Taller sticky note
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF3D4), // Very light yellow note
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'What\'s the quest?',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF2D2D2D),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Container(height: 1, color: const Color(0xFFE4D5B7)),
+                              const SizedBox(height: 12),
+                              Expanded(
+                                child: TextField(
+                                  controller: _titleController,
+                                  maxLines: null, // Allow expanding
+                                  expands: true,
+                                  textAlignVertical: TextAlignVertical.top,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    fontStyle: FontStyle.italic,
+                                    color: const Color(0xFF1E1E1E),
+                                    height: 1.2,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'Coffee run and study\nsession',
+                                    hintStyle: GoogleFonts.plusJakartaSans(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      fontStyle: FontStyle.italic,
+                                      color: const Color(0xFFA69980),
+                                      height: 1.2,
+                                    ),
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.zero,
+                                    isDense: true,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Container(height: 1.5, color: Colors.black54),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _titleController,
-                          maxLines: 2,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF988A68),
-                            height: 1.2,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'coffee run and study\nsession',
-                            hintStyle: GoogleFonts.plusJakartaSans(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF988A68).withOpacity(0.4),
-                              height: 1.2,
-                            ),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.zero,
-                            isDense: true,
-                          ),
+                        const SizedBox(height: 24),
+          
+                        // ── Location ──
+                        _buildLabel('Location'),
+                        const SizedBox(height: 8),
+                        _buildInputField(
+                           child: TextField(
+                              controller: _locationController,
+                              style: GoogleFonts.plusJakartaSans(fontSize: 15, color: Colors.black87, fontWeight: FontWeight.w500),
+                              decoration: InputDecoration(
+                                 hintText: 'Enter location',
+                                 hintStyle: GoogleFonts.plusJakartaSans(color: Colors.grey[500], fontSize: 15),
+                                 border: InputBorder.none,
+                                 isDense: true,
+                              ),
+                           ),
+                           suffixIcon: Icons.location_on,
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 20),
+          
+                        // ── Date ──
+                        _buildLabel('Date'),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                           onTap: _selectDate,
+                           child: _buildInputField(
+                              child: Text(
+                                 _selectedDate == null ? 'Choose date' : DateFormat('MMM d, yyyy').format(_selectedDate!),
+                                 style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 15,
+                                    color: _selectedDate == null ? Colors.grey[500] : Colors.black87,
+                                    fontWeight: _selectedDate == null ? FontWeight.w400 : FontWeight.w500,
+                                 ),
+                              ),
+                              suffixIcon: Icons.calendar_today_outlined,
+                           ),
+                        ),
+                        const SizedBox(height: 20),
+          
+                        // ── Start & End Time ──
                         Row(
+                           children: [
+                              Expanded(
+                                 child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                       _buildLabel('Start time'),
+                                       const SizedBox(height: 8),
+                                       GestureDetector(
+                                          onTap: () => _selectTime(true),
+                                          child: _buildInputField(
+                                             child: Text(
+                                                _startTime == null ? 'Choose time' : _startTime!.format(context).toLowerCase(),
+                                                style: GoogleFonts.plusJakartaSans(
+                                                   fontSize: 15,
+                                                   color: _startTime == null ? Colors.grey[500] : Colors.black87,
+                                                   fontWeight: _startTime == null ? FontWeight.w400 : FontWeight.w500,
+                                                ),
+                                             ),
+                                             suffixIcon: Icons.access_time,
+                                          ),
+                                       ),
+                                    ],
+                                 )
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                 child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                       _buildLabel('End time'),
+                                       const SizedBox(height: 8),
+                                       GestureDetector(
+                                          onTap: () => _selectTime(false),
+                                          child: _buildInputField(
+                                             child: Text(
+                                                _endTime == null ? 'Choose time' : _endTime!.format(context).toLowerCase(),
+                                                style: GoogleFonts.plusJakartaSans(
+                                                   fontSize: 15,
+                                                   color: _endTime == null ? Colors.grey[500] : Colors.black87,
+                                                   fontWeight: _endTime == null ? FontWeight.w400 : FontWeight.w500,
+                                                ),
+                                             ),
+                                             suffixIcon: Icons.access_time,
+                                          ),
+                                       ),
+                                    ],
+                                 )
+                              ),
+                           ],
+                        ),
+                        const SizedBox(height: 28),
+          
+                        // ── Vibes ──
+                        _buildLabel("What's the vibe?"),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'time',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFFB59D71),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: DropdownButtonHideUnderline(
-                                      child: DropdownButton<String>(
-                                        value: selectedTime,
-                                        icon: const Icon(Icons.keyboard_arrow_down, color: Colors.black87),
-                                        isExpanded: true,
-                                        isDense: true,
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.black,
-                                        ),
-                                        onChanged: (String? newValue) {
-                                          if (newValue != null) {
-                                            setState(() => selectedTime = newValue);
-                                          }
-                                        },
-                                        items: _timeHourMap.keys
-                                            .map<DropdownMenuItem<String>>((String value) {
-                                          return DropdownMenuItem<String>(
-                                            value: value,
-                                            child: Text(value),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                            _buildVibePill('Chill'),
+                            _buildVibePill('Active'),
+                            _buildVibePill('Social'),
+                            _buildVibePill('Fun'),
+                            _buildVibePill('Productive'),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border.all(color: const Color(0xFFFFB300)),
+                                borderRadius: BorderRadius.circular(4),
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'date',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFFB59D71),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: DropdownButtonHideUnderline(
-                                      child: DropdownButton<String>(
-                                        value: selectedDate,
-                                        icon: const Icon(Icons.keyboard_arrow_down, color: Colors.black87),
-                                        isExpanded: true,
-                                        isDense: true,
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.black,
-                                        ),
-                                        onChanged: (String? newValue) {
-                                          if (newValue != null) {
-                                            setState(() => selectedDate = newValue);
-                                          }
-                                        },
-                                        items: <String>['today', 'tomorrow', 'this weekend', 'next week']
-                                            .map<DropdownMenuItem<String>>((String value) {
-                                          return DropdownMenuItem<String>(
-                                            value: value,
-                                            child: Text(value),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              child: const Icon(Icons.add, color: Colors.black, size: 20),
                             ),
                           ],
                         ),
+                        const SizedBox(height: 28),
+          
+                        // ── How many people ──
+                        _buildLabel("How many people?"),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF3D4), // exact light yellow bg
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  if (numPeople > 1) setState(() => numPeople--);
+                                },
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFFFB300),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  padding: const EdgeInsets.all(6),
+                                  child: const Icon(Icons.remove, color: Colors.black, size: 22),
+                                ),
+                              ),
+                              Column(
+                                children: [
+                                  Text(
+                                    numPeople.toString(),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.black,
+                                      height: 1.1,
+                                    ),
+                                  ),
+                                  Text(
+                                    'people',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFFFFB300),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              GestureDetector(
+                                onTap: () => setState(() => numPeople++),
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFFFB300),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  padding: const EdgeInsets.all(6),
+                                  child: const Icon(Icons.add, color: Colors.black, size: 22),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+          
+                        // ── Public Toggle ──
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildLabel('Public?'),
+                            Switch(
+                              value: postToBoard,
+                              onChanged: (val) => setState(() => postToBoard = val),
+                              activeColor: const Color(0xFFFFB300),
+                              activeTrackColor: const Color(0xFFFFB300).withValues(alpha: 0.3),
+                              inactiveThumbColor: Colors.white,
+                              inactiveTrackColor: Colors.grey[300],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+          
+                        // ── Post Section ──
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _isPosting ? null : _postSidequest,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFFB300),
+                              disabledBackgroundColor: const Color(0xFFFFB300).withValues(alpha: 0.5),
+                              padding: const EdgeInsets.symmetric(vertical: 22),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: _isPosting
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.black,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  )
+                                : Text(
+                                    'Post Sidequest!',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF1E1E1E),
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+          
+                        // Cancel
+                        Center(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: TextButton.styleFrom(
+                               foregroundColor: Colors.grey[600],
+                            ),
+                            child: Text(
+                              'Cancel',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF5F5F5F),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 40),
                       ],
                     ),
-                    // Decorative star/asterisk
-                    Positioned(
-                      right: -10,
-                      top: 40,
-                      child: _buildDecorativeStar(),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // ── Vibes ──
-              Text(
-                'what\'s the vibe?',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  _buildVibePill('chill', selectedVibe == 'chill'),
-                  _buildVibePill('active', selectedVibe == 'active'),
-                  _buildVibePill('social', selectedVibe == 'social'),
-                  _buildVibePill('fun', selectedVibe == 'fun'),
-                  _buildVibePill('productive', selectedVibe == 'productive'),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAF5E6),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: const Icon(Icons.add, color: Colors.black, size: 20),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-
-              // ── Who's coming ──
-              Text(
-                'who\'s coming?',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'small group. good vibes.',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFFC7A77D),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFF9F5EC), Color(0xFFFEE18C)],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        if (numPeople > 1) setState(() => numPeople--);
-                      },
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFFB300),
-                          shape: BoxShape.circle,
-                        ),
-                        padding: const EdgeInsets.all(8),
-                        child: const Icon(Icons.remove, color: Colors.black, size: 24),
-                      ),
-                    ),
-                    Column(
-                      children: [
-                        Text(
-                          numPeople.toString(),
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.black,
-                          ),
-                        ),
-                        Text(
-                          numPeople == 1 ? 'person' : 'people',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFFB59D71),
-                          ),
-                        ),
-                      ],
-                    ),
-                    GestureDetector(
-                      onTap: () => setState(() => numPeople++),
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFFB300),
-                          shape: BoxShape.circle,
-                        ),
-                        padding: const EdgeInsets.all(8),
-                        child: const Icon(Icons.add, color: Colors.black, size: 24),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // ── Campus Board Toggle ──
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'post to campus board?',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.black,
-                    ),
-                  ),
-                  Switch(
-                    value: postToBoard,
-                    onChanged: (val) => setState(() => postToBoard = val),
-                    activeColor: const Color(0xFFFFB300),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-
-              // ── Post Button ──
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isPosting ? null : _postSidequest,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFB300),
-                    disabledBackgroundColor: const Color(0xFFFFB300).withOpacity(0.5),
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: _isPosting
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.black,
-                            strokeWidth: 2.5,
-                          ),
-                        )
-                      : Text(
-                          'post sidequest',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.black,
-                          ),
-                        ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // ── Bottom disclaimer ──
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  child: Text(
-                    'don\'t worry, you can always edit or cancel the\nquest before it starts',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFFC7A77D),
-                      height: 1.4,
-                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 40),
-            ],
-          ),
+             ]
+           )
         ),
       ),
     );
   }
 
-  Widget _buildVibePill(String text, bool isSelected) {
-    return GestureDetector(
-      onTap: () => setState(() => selectedVibe = text),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+  Widget _buildLabel(String text) {
+     return Text(
+         text,
+         style: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF1E1E1E),
+         ),
+     );
+  }
+
+  Widget _buildInputField({required Widget child, required IconData suffixIcon}) {
+     return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFFB300) : const Color(0xFFFAF5E6),
-          borderRadius: BorderRadius.circular(24),
+           color: Colors.white,
+           border: Border.all(color: Colors.grey[300]!),
+           borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+           children: [
+              Expanded(child: child),
+              Icon(suffixIcon, color: Colors.grey[600], size: 20),
+           ],
+        ),
+     );
+  }
+
+  Widget _buildVibePill(String title) {
+    bool isSelected = selectedVibe.toLowerCase() == title.toLowerCase();
+    return GestureDetector(
+      onTap: () => setState(() => selectedVibe = title.toLowerCase()),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFFB300) : Colors.white,
+          border: Border.all(color: const Color(0xFFFFB300)),
+          borderRadius: BorderRadius.circular(4),
         ),
         child: Text(
-          text,
+          title,
           style: GoogleFonts.plusJakartaSans(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: Colors.black,
+            fontSize: 14,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            color: const Color(0xFF1E1E1E),
           ),
         ),
       ),
     );
   }
-
-  Widget _buildDecorativeStar() {
-    return SizedBox(
-      width: 100,
-      height: 100,
-      child: CustomPaint(
-        painter: _StarPainter(),
-      ),
-    );
-  }
 }
 
-class _StarPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-
-    // Shadow/outline star (slightly offset, light gray)
-    final shadowPaint = Paint()
-      ..color = const Color(0xFFE0D8C8)
-      ..style = PaintingStyle.fill;
-    _drawStar(canvas, Offset(center.dx + 4, center.dy + 4), radius, shadowPaint);
-
-    // Main gold star
-    final mainPaint = Paint()
-      ..color = const Color(0xFFFFB300)
-      ..style = PaintingStyle.fill;
-    _drawStar(canvas, center, radius, mainPaint);
-  }
-
-  void _drawStar(Canvas canvas, Offset center, double radius, Paint paint) {
-    final path = Path();
-    const int points = 4;
-    final innerRadius = radius * 0.38;
-
-    for (int i = 0; i < points * 2; i++) {
-      final angle = (i * math.pi / points) - math.pi / 2;
-      final r = i.isEven ? radius : innerRadius;
-      final x = center.dx + r * math.cos(angle);
-      final y = center.dy + r * math.sin(angle);
-
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}

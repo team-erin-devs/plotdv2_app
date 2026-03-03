@@ -1,0 +1,8 @@
+﻿Analyzing sidequest_detail_screen.dart...                       
+
+warning - Unused import: '../widgets/sidequest_card.dart' - lib\screens\sidequest_detail_screen.dart:7:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\sidequest_detail_screen.dart:359:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\sidequest_detail_screen.dart:442:58 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\sidequest_detail_screen.dart:564:70 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\sidequest_detail_screen.dart:603:29 - deprecated_member_use
+

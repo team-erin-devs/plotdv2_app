@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../services/authenticated_api_service.dart';
+import '../widgets/sidequest_card.dart';
+import 'sidequest_detail_screen.dart';
 
 // ─── Data Model ──────────────────────────────────────────────────────────────
 
@@ -11,9 +13,11 @@ class SidequestItem {
   final String title;
   final String description;
   final String creatorUsername;
+  final String creatorFirstName; // new
   final String vibe;
   final String status;
   final DateTime eventDatetime;
+  final DateTime? endDatetime;
   final String location;
   final int maxPeople;
   final int participantCount;
@@ -27,9 +31,11 @@ class SidequestItem {
     required this.title,
     required this.description,
     required this.creatorUsername,
+    required this.creatorFirstName, // new
     required this.vibe,
     required this.status,
     required this.eventDatetime,
+    this.endDatetime,
     required this.location,
     required this.maxPeople,
     required this.participantCount,
@@ -45,10 +51,14 @@ class SidequestItem {
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       creatorUsername: json['creator']?['username'] ?? 'unknown',
+      creatorFirstName: json['creator']?['first_name']?.isNotEmpty == true
+          ? json['creator']['first_name']
+          : (json['creator']?['username'] ?? 'friend'),
       vibe: json['vibe'] ?? 'chill',
       status: json['status'] ?? 'upcoming',
       eventDatetime: DateTime.parse(json['event_datetime']),
-      location: json['location'] ?? '',
+      endDatetime: json['end_datetime'] != null ? DateTime.parse(json['end_datetime']) : null,
+      location: json['location'] ?? 'Location TBD',
       maxPeople: json['max_people'] ?? 5,
       participantCount: json['participant_count'] ?? 0,
       spotsLeft: json['spots_left'] ?? 0,
@@ -76,23 +86,40 @@ class _SidequestFeedScreenState extends State<SidequestFeedScreen> {
   List<SidequestItem> _allSidequests = [];
   bool _isLoading = true;
   String? _error;
-  int? _expandedId;
-  Set<String> _activeFilters = {'friends-only'};
-
-  final List<String> _filterOptions = [
-    'friends-only',
-    'public',
-    'chill',
-    'active',
-    'social',
-    'fun',
-    'productive',
-  ];
+  
+  // Date navigation state
+  late DateTime _selectedDate;
 
   @override
   void initState() {
     super.initState();
+    // Start with today at midnight
+    final now = DateTime.now();
+    _selectedDate = DateTime(now.year, now.month, now.day);
     _fetchSidequests();
+  }
+
+  void _changeDate(int offsetDays) {
+    setState(() {
+      _selectedDate = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day + offsetDays,
+      );
+    });
+  }
+
+  String _getDateDisplayText() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    if (_selectedDate == today) return 'Today';
+    if (_selectedDate == tomorrow) return 'Tomorrow';
+    if (_selectedDate == yesterday) return 'Yesterday';
+
+    return DateFormat('MMM d').format(_selectedDate);
   }
 
   Future<void> _fetchSidequests() async {
@@ -165,26 +192,11 @@ class _SidequestFeedScreenState extends State<SidequestFeedScreen> {
   }
 
   List<SidequestItem> get _filteredSidequests {
-    if (_activeFilters.isEmpty) return _allSidequests;
-
-    final sourceFilters = _activeFilters.intersection({'friends-only', 'public'});
-    final vibeFilters = _activeFilters.intersection(
-        {'chill', 'active', 'social', 'fun', 'productive'});
-
     return _allSidequests.where((sq) {
-      // Source filter check
-      bool sourceMatch = sourceFilters.isEmpty; // no source filter = match all
-      if (sourceFilters.contains('friends-only') && sq.isFriendsOnly) sourceMatch = true;
-      if (sourceFilters.contains('public') && sq.postToCampusBoard) sourceMatch = true;
-      // Always include own sidequests when a source filter is active
-      if (sourceFilters.isNotEmpty && sq.isOwn) sourceMatch = true;
-
-      // Vibe filter check
-      bool vibeMatch = vibeFilters.isEmpty; // no vibe filter = match all
-      if (vibeFilters.contains(sq.vibe)) vibeMatch = true;
-
-      // Must pass BOTH source AND vibe filters
-      return sourceMatch && vibeMatch;
+      // Check if event is on the selected date (local time)
+      final eventLocal = sq.eventDatetime.toLocal();
+      final eventDate = DateTime(eventLocal.year, eventLocal.month, eventLocal.day);
+      return eventDate == _selectedDate;
     }).toList();
   }
 
@@ -271,140 +283,69 @@ class _SidequestFeedScreenState extends State<SidequestFeedScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text.rich(
-                                      TextSpan(
-                                        children: [
-                                          TextSpan(
-                                            text: 'Plot',
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 28,
-                                              fontWeight: FontWeight.w800,
-                                              color: const Color(0xFF455A64),
-                                            ),
-                                          ),
-                                          TextSpan(
-                                            text: 'd',
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 28,
-                                              fontWeight: FontWeight.w800,
-                                              color: const Color(0xFFFFB300),
-                                            ),
-                                          ),
-                                          TextSpan(
-                                            text: '✳',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              color: const Color(0xFFE8837C),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Text(
-                                      '*do it for the plot',
+                                const Icon(Icons.add, color: Colors.black, size: 28),
+                                Text.rich(
+                                  TextSpan(children: [
+                                    TextSpan(
+                                      text: 'Plot',
                                       style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: const Color(0xFFFFB300),
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFF1E1E1E),
                                       ),
                                     ),
-                                  ],
-                                ),
-                                // Notification bell
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.black,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  padding: const EdgeInsets.all(10),
-                                  child: Stack(
-                                    children: [
-                                      const Icon(Icons.notifications_outlined,
-                                          color: Colors.white, size: 22),
-                                      Positioned(
-                                        right: 0,
-                                        top: 0,
-                                        child: Container(
-                                          width: 8,
-                                          height: 8,
-                                          decoration: const BoxDecoration(
-                                            color: Color(0xFFE8837C),
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
+                                    TextSpan(
+                                      text: 'd',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFF1E1E1E),
                                       ),
-                                    ],
+                                    ),
+                                    WidgetSpan(
+                                      alignment: PlaceholderAlignment.top,
+                                      child: Image.asset(
+                                        'assets/images/asterik.png',
+                                        width: 20,
+                                        color: const Color(0xFF1E1E1E),
+                                      ),
+                                    ),
+                                  ]),
+                                ),
+                                const Icon(Icons.notifications_outlined, color: Colors.black, size: 28),
+                              ],
+                            ),
+                            const SizedBox(height: 32),
+
+                            // ── Date Navigation ──
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                IconButton(
+                                  onPressed: () => _changeDate(-1),
+                                  icon: const Icon(Icons.arrow_back_ios, size: 18, color: Color(0xFF888888)),
+                                ),
+                                const SizedBox(width: 8),
+                                SizedBox(
+                                  width: 140,
+                                  child: Text(
+                                    _getDateDisplayText(),
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF1E1E1E),
+                                    ),
                                   ),
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  onPressed: () => _changeDate(1),
+                                  icon: const Icon(Icons.arrow_forward_ios, size: 18, color: Color(0xFF1E1E1E)),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 20),
-
-                            // ── Filter Pills ──
-                            SizedBox(
-                              height: 36,
-                              child: ListView.separated(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: _filterOptions.length,
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(width: 8),
-                                itemBuilder: (context, index) {
-                                  final filter = _filterOptions[index];
-                                  final isActive =
-                                      _activeFilters.contains(filter);
-                                  return GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        if (isActive) {
-                                          _activeFilters.remove(filter);
-                                        } else {
-                                          // friends-only and public are mutually exclusive
-                                          if (filter == 'friends-only') {
-                                            _activeFilters.remove('public');
-                                          } else if (filter == 'public') {
-                                            _activeFilters.remove('friends-only');
-                                          }
-                                          _activeFilters.add(filter);
-                                        }
-                                      });
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 8),
-                                      decoration: BoxDecoration(
-                                        color: isActive
-                                            ? (filter == 'public'
-                                                ? const Color(0xFF90CAF9)
-                                                : filter == 'friends-only'
-                                                    ? const Color(0xFFF8BBB1)
-                                                    : const Color(0xFFE0E0E0))
-                                            : Colors.white,
-                                        borderRadius:
-                                            BorderRadius.circular(20),
-                                        border: Border.all(
-                                          color: isActive
-                                              ? Colors.transparent
-                                              : const Color(0xFFD0D0D0),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        filter,
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 24),
 
                             // ── Quest Cards ──
                             if (_filteredSidequests.isEmpty)
@@ -413,13 +354,10 @@ class _SidequestFeedScreenState extends State<SidequestFeedScreen> {
                                 child: Center(
                                   child: Column(
                                     children: [
-                                      const Text('✳',
-                                          style: TextStyle(
-                                              fontSize: 48,
-                                              color: Color(0xFFE8837C))),
+                                      Image.asset('assets/images/asterik.png', width: 48, color: const Color(0xFF1E1E1E)),
                                       const SizedBox(height: 12),
                                       Text(
-                                        'no quests yet',
+                                        'No quests on this day',
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 18,
                                           fontWeight: FontWeight.w700,
@@ -428,7 +366,7 @@ class _SidequestFeedScreenState extends State<SidequestFeedScreen> {
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
-                                        'post one or add some friends!',
+                                        'Swipe back or check tomorrow!',
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
@@ -441,19 +379,30 @@ class _SidequestFeedScreenState extends State<SidequestFeedScreen> {
                               )
                             else
                               ..._filteredSidequests.map((sq) {
-                                final isExpanded = _expandedId == sq.id;
+                                SidequestType type = SidequestType.own;
+                                if (sq.isFriendsOnly) type = SidequestType.friend;
+                                if (sq.isPublic) type = SidequestType.community;
+
                                 return Padding(
                                   padding: const EdgeInsets.only(bottom: 16),
-                                  child: _SidequestCard(
-                                    sidequest: sq,
-                                    isExpanded: isExpanded,
-                                    onToggle: () {
-                                      setState(() {
-                                        _expandedId =
-                                            isExpanded ? null : sq.id;
+                                  child: SidequestCard(
+                                    creatorName: sq.isOwn ? 'You' : sq.creatorFirstName,
+                                    creatorUsername: sq.isOwn ? 'you' : sq.creatorUsername,
+                                    title: sq.title,
+                                    eventDatetime: sq.eventDatetime,
+                                    location: sq.location,
+                                    type: type,
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => SidequestDetailScreen(sidequestId: sq.id),
+                                        ),
+                                      ).then((_) {
+                                        // Reload the feed when returning to pick up any joins/leaves
+                                        _fetchSidequests();
                                       });
-                                    },
-                                    onJoin: () => _joinSidequest(sq.id),
+                                    }
                                   ),
                                 );
                               }),
@@ -467,317 +416,4 @@ class _SidequestFeedScreenState extends State<SidequestFeedScreen> {
   }
 }
 
-// ─── Quest Card Widget ───────────────────────────────────────────────────────
 
-class _SidequestCard extends StatelessWidget {
-  final SidequestItem sidequest;
-  final bool isExpanded;
-  final VoidCallback onToggle;
-  final VoidCallback onJoin;
-
-  const _SidequestCard({
-    required this.sidequest,
-    required this.isExpanded,
-    required this.onToggle,
-    required this.onJoin,
-  });
-
-  // Own = yellow, Friends = pink, Public = blue
-  Color get _cardColor {
-    if (sidequest.isOwn) return const Color(0xFFFDE08B);
-    if (sidequest.isFriendsOnly) return const Color(0xFFFDE4E1);
-    return const Color(0xFFDDE9F7);
-  }
-
-  Color get _accentColor {
-    if (sidequest.isOwn) return const Color(0xFFFFB300);
-    if (sidequest.isFriendsOnly) return const Color(0xFFE8837C);
-    return const Color(0xFF64A8DB);
-  }
-
-  Color get _tagBgColor {
-    if (sidequest.isOwn) return const Color(0xFFFFB300);
-    if (sidequest.isFriendsOnly) return const Color(0xFFE8837C);
-    return const Color(0xFF64A8DB);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final dateStr =
-        DateFormat('MMMM d, yyyy').format(sidequest.eventDatetime.toLocal()).toLowerCase();
-    final timeStr =
-        DateFormat('h:mm a').format(sidequest.eventDatetime.toLocal()).toLowerCase();
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      decoration: BoxDecoration(
-        color: _cardColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: InkWell(
-        onTap: onToggle,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Header row: avatar + username + chevron ──
-              Row(
-                children: [
-                  // Color dot
-                  Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: _accentColor,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '${sidequest.creatorUsername}\'s',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    isExpanded
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
-                    color: Colors.black54,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // ── Title ──
-              Text(
-                sidequest.title,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              // ── Tags ──
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  _buildTag(sidequest.vibe, const Color(0xFF607D8B)),
-                  _buildTag(
-                    sidequest.isOwn
-                        ? 'yours'
-                        : sidequest.isFriendsOnly
-                            ? 'friends-only'
-                            : 'public',
-                    _tagBgColor,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // ── Expanded Content ──
-              if (isExpanded) ...[
-                // Description
-                if (sidequest.description.isNotEmpty) ...[
-                  Container(
-                    width: double.infinity,
-                    height: 1,
-                    color: Colors.black.withOpacity(0.08),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    sidequest.description,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-
-                // Date / Time / Location
-                _buildInfoRow(Icons.calendar_today, dateStr),
-                if (sidequest.location.isNotEmpty)
-                  _buildInfoRow(Icons.location_on_outlined, sidequest.location),
-                const SizedBox(height: 8),
-                _buildInfoRow(Icons.access_time, timeStr),
-                const SizedBox(height: 14),
-
-                // Participant dots + spots
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Participant dots
-                    Row(
-                      children: List.generate(
-                        sidequest.maxPeople.clamp(0, 6),
-                        (i) => Container(
-                          width: 18,
-                          height: 18,
-                          margin: const EdgeInsets.only(right: 3),
-                          decoration: BoxDecoration(
-                            color: i < sidequest.participantCount
-                                ? _accentColor.withOpacity(0.7)
-                                : _accentColor.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '${sidequest.participantCount}/${sidequest.maxPeople} spots filled',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // Join button (only if not already going or creator)
-                if (sidequest.userStatus == null ||
-                    sidequest.userStatus == 'declined')
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: sidequest.isFull ? null : onJoin,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _accentColor,
-                        disabledBackgroundColor: _accentColor.withOpacity(0.3),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        sidequest.isFull ? 'quest is full' : 'join the plot!',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  )
-                else if (sidequest.userStatus == 'going' ||
-                    sidequest.userStatus == 'creator')
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: _accentColor.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Center(
-                      child: Text(
-                        sidequest.userStatus == 'creator'
-                            ? 'your quest ✳'
-                            : 'you\'re going! ✓',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: _accentColor,
-                        ),
-                      ),
-                    ),
-                  ),
-              ] else ...[
-                // ── Collapsed: just date + participant dots ──
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.calendar_today,
-                            size: 14, color: Colors.black45),
-                        const SizedBox(width: 6),
-                        Text(
-                          dateStr,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ],
-                    ),
-                    // Small participant dots
-                    Row(
-                      children: List.generate(
-                        sidequest.maxPeople.clamp(0, 5),
-                        (i) => Container(
-                          width: 14,
-                          height: 14,
-                          margin: const EdgeInsets.only(right: 2),
-                          decoration: BoxDecoration(
-                            color: i < sidequest.participantCount
-                                ? _accentColor.withOpacity(0.7)
-                                : _accentColor.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTag(String text, Color bgColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        text,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        children: [
-          Icon(icon, size: 15, color: Colors.black45),
-          const SizedBox(width: 8),
-          Text(
-            text,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.black54,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

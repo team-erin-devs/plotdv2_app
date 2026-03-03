@@ -108,11 +108,11 @@ class _MainNavigationState extends State<MainNavigation> {
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         items: const [
-          _NeoNavItem(icon: Icons.home_rounded, label: 'Home'),
-          _NeoNavItem(icon: Icons.dynamic_feed_rounded, label: 'Feed'),
-          _NeoNavItem(icon: Icons.add_circle_outline_rounded, label: 'Post'),
+          _NeoNavItem(icon: Icons.home_outlined, label: 'Home'),
+          _NeoNavItem(icon: Icons.local_activity_outlined, label: 'Quests'),
+          _NeoNavItem(icon: Icons.add, label: 'Create'),
           _NeoNavItem(icon: Icons.search_rounded, label: 'Search'),
-          _NeoNavItem(icon: Icons.person_rounded, label: 'Profile'),
+          _NeoNavItem(icon: Icons.person_outline_rounded, label: 'Profile'),
         ],
       ),
     );
@@ -136,25 +136,15 @@ class _NeoBottomNavBar extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF0B0B0B),
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.4),
-              blurRadius: 12,
-              offset: const Offset(0, -4),
-            ),
-          ],
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Color(0xFFE8E0D8))),
         ),
         child: Row(
           children: List.generate(items.length, (i) {
             final selected = i == currentIndex;
-            final color = selected ? Colors.white : const Color(0xFF8E8E93);
+            final color = selected ? const Color(0xFF2D2D2D) : const Color(0xFF9E9E9E);
 
             return Expanded(
               child: InkWell(
@@ -165,28 +155,15 @@ class _NeoBottomNavBar extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(items[i].icon, size: 26, color: color),
-                      const SizedBox(height: 6),
+                      Icon(items[i].icon, size: selected ? 28 : 26, color: color),
+                      const SizedBox(height: 4),
                       Text(
                         items[i].label,
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                           color: color,
                           letterSpacing: 0.1,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      AnimatedOpacity(
-                        opacity: selected ? 1 : 0,
-                        duration: const Duration(milliseconds: 180),
-                        child: Container(
-                          width: 18,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
                         ),
                       ),
                     ],
