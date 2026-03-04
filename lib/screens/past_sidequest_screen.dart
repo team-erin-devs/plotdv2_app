@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
 import '../services/authenticated_api_service.dart';
 import '../services/upload_service.dart';
+import '../widgets/bouncing_button.dart';
 
 class PastSidequestScreen extends StatefulWidget {
   final int sidequestId;
@@ -154,8 +155,8 @@ class _PastSidequestScreenState extends State<PastSidequestScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(5, (index) {
         final isFilled = index < _currentRating;
-        return GestureDetector(
-          onTap: () => _handleRating(index + 1),
+        return BouncingButton(
+          onPressed: () => _handleRating(index + 1),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4.0),
             child: Image.asset(
@@ -212,7 +213,9 @@ class _PastSidequestScreenState extends State<PastSidequestScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   image: DecorationImage(
-                    image: NetworkImage(imgUrl),
+                    image: (imgUrl.startsWith('images/') || imgUrl.startsWith('assets/images/'))
+                        ? AssetImage(imgUrl.startsWith('images/') ? 'assets/$imgUrl' : imgUrl)
+                        : NetworkImage(imgUrl) as ImageProvider,
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -323,7 +326,7 @@ class _PastSidequestScreenState extends State<PastSidequestScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.reply, color: Colors.black87, size: 28),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87, size: 24),
           onPressed: () => Navigator.pop(context),
         ),
         title: Image.asset(
@@ -459,29 +462,31 @@ class _PastSidequestScreenState extends State<PastSidequestScreen> {
             // Upload Button
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isUploadingImage ? null : _uploadImage,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF64A8DB),
-                  disabledBackgroundColor: const Color(0xFF64A8DB).withOpacity(0.5),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              child: BouncingButton(
+                child: ElevatedButton(
+                  onPressed: _isUploadingImage ? null : _uploadImage,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF64A8DB),
+                    disabledBackgroundColor: const Color(0xFF64A8DB).withOpacity(0.5),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                ),
-                child: _isUploadingImage
-                    ? const SizedBox(
-                        height: 20, width: 20, 
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                      )
-                    : Text(
-                        'Upload Images',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                  child: _isUploadingImage
+                      ? const SizedBox(
+                          height: 20, width: 20, 
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                        )
+                      : Text(
+                          'Upload Images',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
+                ),
               ),
             ),
             const SizedBox(height: 40),

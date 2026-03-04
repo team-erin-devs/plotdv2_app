@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/authenticated_api_service.dart';
 import '../widgets/sidequest_card.dart';
+import '../widgets/bouncing_button.dart';
 import 'profile_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -347,7 +348,9 @@ class _SearchScreenState extends State<SearchScreen> {
                     backgroundColor: const Color(0xFFEAE6E0),
                     backgroundImage: user['profile_picture'] != null &&
                             (user['profile_picture'] as String).isNotEmpty
-                        ? NetworkImage(user['profile_picture'])
+                        ? ((user['profile_picture'] as String).startsWith('images/') || (user['profile_picture'] as String).startsWith('assets/images/')
+                            ? AssetImage((user['profile_picture'] as String).startsWith('images/') ? 'assets/${user['profile_picture']}' : user['profile_picture'] as String)
+                            : NetworkImage(user['profile_picture'] as String)) as ImageProvider
                         : null,
                     child: user['profile_picture'] == null ||
                             (user['profile_picture'] as String).isEmpty
@@ -547,7 +550,9 @@ class _SearchScreenState extends State<SearchScreen> {
               radius: 40,
               backgroundColor: Colors.white,
               backgroundImage: profilePic != null && profilePic.isNotEmpty
-                  ? NetworkImage(profilePic)
+                  ? (profilePic.startsWith('images/') || profilePic.startsWith('assets/images/')
+                      ? AssetImage(profilePic.startsWith('images/') ? 'assets/$profilePic' : profilePic)
+                      : NetworkImage(profilePic)) as ImageProvider
                   : null,
               child: profilePic == null || profilePic.isEmpty
                   ? Text(
@@ -615,6 +620,7 @@ class _SearchScreenState extends State<SearchScreen> {
       child: SidequestCard(
         creatorName: sq['creator_first_name'] ?? sq['creator_username'] ?? 'Friend',
         creatorUsername: sq['creator_username'] ?? 'username',
+        creatorProfilePictureUrl: sq['creator_profile_picture'],
         title: sq['title'] ?? '',
         eventDatetime: eventDatetime,
         location: sq['location'] ?? 'Location TBD',
@@ -629,55 +635,63 @@ class _SearchScreenState extends State<SearchScreen> {
     final pendingReceivedId = user['pending_received_id'];
 
     if (isFriend) {
-      return ElevatedButton(
-        onPressed: null,
-        style: ElevatedButton.styleFrom(
-          disabledBackgroundColor: const Color(0xFFE0E0E0),
-          disabledForegroundColor: Colors.black87,
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-          elevation: 0,
+      return BouncingButton(
+        child: ElevatedButton(
+          onPressed: null,
+          style: ElevatedButton.styleFrom(
+            disabledBackgroundColor: const Color(0xFFE0E0E0),
+            disabledForegroundColor: Colors.black87,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            elevation: 0,
+          ),
+          child: Text('Friends', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
         ),
-        child: Text('Friends', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
       );
     } else if (pendingReceivedId != null) {
-      return ElevatedButton(
-        onPressed: () => _handleAcceptUser(pendingReceivedId, index, isSearchList),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF64A8DB), // secondary blue
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-          elevation: 0,
+      return BouncingButton(
+        child: ElevatedButton(
+          onPressed: () => _handleAcceptUser(pendingReceivedId, index, isSearchList),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF64A8DB), // secondary blue
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            elevation: 0,
+          ),
+          child: Text('Accept', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
         ),
-        child: Text('Accept', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
       );
     } else if (pendingSent) {
-      return ElevatedButton(
-        onPressed: null,
-        style: ElevatedButton.styleFrom(
-          disabledBackgroundColor: Colors.white,
-          disabledForegroundColor: Colors.black87,
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
-            side: const BorderSide(color: Color(0xFFE0E0E0)),
+      return BouncingButton(
+        child: ElevatedButton(
+          onPressed: null,
+          style: ElevatedButton.styleFrom(
+            disabledBackgroundColor: Colors.white,
+            disabledForegroundColor: Colors.black87,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
+              side: const BorderSide(color: Color(0xFFE0E0E0)),
+            ),
+            elevation: 0,
           ),
-          elevation: 0,
+          child: Text('Requested', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
         ),
-        child: Text('Requested', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
       );
     } else {
-      return ElevatedButton(
-        onPressed: () => _handleFollowUser(user['username'], index, isSearchList),
-        style: ElevatedButton.styleFrom(
-           backgroundColor: const Color(0xFF64A8DB), // secondary blue
-           foregroundColor: Colors.white,
-           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-           elevation: 0,
+      return BouncingButton(
+        child: ElevatedButton(
+          onPressed: () => _handleFollowUser(user['username'], index, isSearchList),
+          style: ElevatedButton.styleFrom(
+             backgroundColor: const Color(0xFF64A8DB), // secondary blue
+             foregroundColor: Colors.white,
+             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+             elevation: 0,
+          ),
+          child: Text('Add', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
         ),
-        child: Text('Add', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
       );
     }
   }

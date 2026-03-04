@@ -13,6 +13,7 @@ class SidequestDetail {
   final String description;
   final String creatorUsername;
   final String creatorFirstName;
+  final String? creatorProfilePictureUrl;
   final String vibe;
   final String status;
   final DateTime eventDatetime;
@@ -20,6 +21,7 @@ class SidequestDetail {
   final String location;
   final int maxPeople;
   final int participantCount;
+  final List<String?> participantProfilePictures;
   final bool isFull;
   final bool postToCampusBoard;
   final String? userStatus; // 'creator', 'going', 'declined', null
@@ -30,6 +32,7 @@ class SidequestDetail {
     required this.description,
     required this.creatorUsername,
     required this.creatorFirstName,
+    this.creatorProfilePictureUrl,
     required this.vibe,
     required this.status,
     required this.eventDatetime,
@@ -37,6 +40,7 @@ class SidequestDetail {
     required this.location,
     required this.maxPeople,
     required this.participantCount,
+    required this.participantProfilePictures,
     required this.isFull,
     required this.postToCampusBoard,
     this.userStatus,
@@ -51,6 +55,7 @@ class SidequestDetail {
       creatorFirstName: json['creator']?['first_name']?.isNotEmpty == true
           ? json['creator']['first_name']
           : (json['creator']?['username'] ?? 'friend'),
+      creatorProfilePictureUrl: json['creator']?['profile_picture'],
       vibe: json['vibe'] ?? 'chill',
       status: json['status'] ?? 'upcoming',
       eventDatetime: DateTime.parse(json['event_datetime']),
@@ -58,6 +63,9 @@ class SidequestDetail {
       location: json['location'] ?? 'Location TBD',
       maxPeople: json['max_people'] ?? 5,
       participantCount: json['participant_count'] ?? 0,
+      participantProfilePictures: (json['participants'] as List<dynamic>?)
+              ?.map((p) => p['profile']?['profile_picture'] as String?)
+              .toList() ?? [],
       isFull: json['is_full'] ?? false,
       postToCampusBoard: json['post_to_campus_board'] ?? false,
       userStatus: json['user_status'],
@@ -252,32 +260,17 @@ class _SidequestDetailScreenState extends State<SidequestDetailScreen> {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Main sticky note body
-          Container(
-             width: double.infinity,
-             // Minimum height to look like a large paper sheet if content is short
-             constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height * 0.7),
-             decoration: BoxDecoration(
-                color: _mainColor,
-             ),
-             child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   // The top fold cut out (using ClipPath or just drawing over it)
-                   // Actually, standard Container is fine, we'll draw the FoldPainter over the top right.
-                   // The original SidequestCard uses a ClipPath for the fold. We'll do the same here to be exact.
-                ],
-             ),
-          ),
-          
-          // Actually, let's wrap the content in ClipPath
-          Positioned.fill(
-             child: ClipPath(
-                clipper: FoldClipper(),
-                child: Container(
+          // Main sticky note body wrapped in ClipPath to cut the fold
+          ClipPath(
+             clipper: FoldClipper(),
+             child: Container(
+                width: double.infinity,
+                // Minimum height to look like a large paper sheet if content is short
+                constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height * 0.7),
+                decoration: BoxDecoration(
                    color: _mainColor,
                 ),
-             )
+             ),
           ),
 
           // And now the actual content padding
@@ -296,6 +289,16 @@ class _SidequestDetailScreenState extends State<SidequestDetailScreen> {
                                color: Colors.white,
                                shape: BoxShape.circle,
                             ),
+                            clipBehavior: Clip.hardEdge,
+                            child: _sq!.creatorProfilePictureUrl != null && _sq!.creatorProfilePictureUrl!.isNotEmpty
+                              ? Image(
+                                  image: (_sq!.creatorProfilePictureUrl!.startsWith('images/') || _sq!.creatorProfilePictureUrl!.startsWith('assets/images/'))
+                                    ? AssetImage(_sq!.creatorProfilePictureUrl!.startsWith('images/') ? 'assets/${_sq!.creatorProfilePictureUrl}' : _sq!.creatorProfilePictureUrl!)
+                                    : NetworkImage(_sq!.creatorProfilePictureUrl!) as ImageProvider,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Icon(Icons.person, size: 20, color: Colors.grey[400]),
+                                )
+                              : Icon(Icons.person, size: 20, color: Colors.grey[400]),
                          ),
                          const SizedBox(width: 12),
                          Column(
@@ -412,40 +415,7 @@ class _SidequestDetailScreenState extends State<SidequestDetailScreen> {
                       ],
                    ),
 
-                   const SizedBox(height: 48),
-
-                   // Star (if joined/creator)
-                   if (isJoined)
-                      Align(
-                         alignment: Alignment.centerRight,
-                         child: Container(
-                            decoration: BoxDecoration(
-                               boxShadow: [
-                                  BoxShadow(
-                                     color: Colors.black.withValues(alpha: 0.1),
-                                     blurRadius: 4,
-                                     offset: const Offset(0, 2),
-                                  ),
-                               ],
-                               shape: BoxShape.circle,
-                            ),
-                            child: SizedBox(
-                               width: 100,
-                               height: 100,
-                               child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                     Image.asset('assets/images/asterik.png', width: 100, color: Colors.white),
-                                     Image.asset('assets/images/asterik.png', width: 88, color: _accentColor),
-                                  ],
-                               ),
-                            ),
-                         ),
-                      )
-                   else
-                      const SizedBox(height: 100), // maintain vertical space
-
-                   const SizedBox(height: 48),
+                   const SizedBox(height: 72),
 
                    // Bottom Action Area
                    Row(
@@ -455,19 +425,34 @@ class _SidequestDetailScreenState extends State<SidequestDetailScreen> {
                          // Participants Outline
                          Row(
                             children: List.generate(
-                               math.min(_sq!.maxPeople, 4), // Show up to 4 circles
-                               (i) => Align(
-                                  widthFactor: i == 0 ? 1.0 : 0.64,
-                                  child: Container(
-                                     width: 28,
-                                     height: 28,
-                                     decoration: BoxDecoration(
-                                        color: i < _sq!.participantCount ? Colors.white : Colors.transparent,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 1.5),
-                                     ),
-                                  ),
-                               ),
+                               math.min(_sq!.participantCount, 5), // Show up to 5 circles of joined members
+                               (i) {
+                                  final hasPic = i < _sq!.participantProfilePictures.length && _sq!.participantProfilePictures[i] != null && _sq!.participantProfilePictures[i]!.isNotEmpty;
+                                  final picUrl = hasPic ? _sq!.participantProfilePictures[i]! : null;
+                                  
+                                  return Align(
+                                    widthFactor: i == 0 ? 1.0 : 0.64,
+                                    child: Container(
+                                       width: 28,
+                                       height: 28,
+                                       decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: Colors.white, width: 1.5),
+                                       ),
+                                       clipBehavior: Clip.hardEdge,
+                                       child: hasPic
+                                         ? Image(
+                                             image: (picUrl!.startsWith('images/') || picUrl.startsWith('assets/images/'))
+                                               ? AssetImage(picUrl.startsWith('images/') ? 'assets/$picUrl' : picUrl)
+                                               : NetworkImage(picUrl) as ImageProvider,
+                                             fit: BoxFit.cover,
+                                             errorBuilder: (_, __, ___) => Icon(Icons.person, size: 16, color: Colors.grey[400]),
+                                           )
+                                         : Icon(Icons.person, size: 16, color: Colors.grey[400]),
+                                    ),
+                                  );
+                               },
                             ),
                          ),
                          Text(
@@ -566,16 +551,15 @@ class _SidequestDetailScreenState extends State<SidequestDetailScreen> {
              ),
           ),
 
-          // Folded corner (top right) - Only if joined
-          if (isJoined)
-             Positioned(
-                top: 0,
-                right: 0,
-                child: CustomPaint(
-                   size: const Size(60, 60),
-                   painter: FoldPainter(color: _accentColor),
-                ),
+          // Folded corner (top right) - Always show
+          Positioned(
+             top: 0,
+             right: 0,
+             child: CustomPaint(
+                size: const Size(60, 60),
+                painter: FoldPainter(color: _accentColor),
              ),
+          ),
         ],
       ),
     );

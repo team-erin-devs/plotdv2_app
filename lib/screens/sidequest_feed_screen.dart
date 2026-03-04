@@ -14,6 +14,7 @@ class SidequestItem {
   final String description;
   final String creatorUsername;
   final String creatorFirstName; // new
+  final String? creatorProfilePictureUrl;
   final String vibe;
   final String status;
   final DateTime eventDatetime;
@@ -32,6 +33,7 @@ class SidequestItem {
     required this.description,
     required this.creatorUsername,
     required this.creatorFirstName, // new
+    this.creatorProfilePictureUrl,
     required this.vibe,
     required this.status,
     required this.eventDatetime,
@@ -54,6 +56,7 @@ class SidequestItem {
       creatorFirstName: json['creator']?['first_name']?.isNotEmpty == true
           ? json['creator']['first_name']
           : (json['creator']?['username'] ?? 'friend'),
+      creatorProfilePictureUrl: json['creator']?['profile_picture'],
       vibe: json['vibe'] ?? 'chill',
       status: json['status'] ?? 'upcoming',
       eventDatetime: DateTime.parse(json['event_datetime']),
@@ -364,6 +367,7 @@ class _SidequestFeedScreenState extends State<SidequestFeedScreen> {
                                   child: SidequestCard(
                                     creatorName: sq.isOwn ? 'You' : sq.creatorFirstName,
                                     creatorUsername: sq.isOwn ? 'you' : sq.creatorUsername,
+                                    creatorProfilePictureUrl: sq.creatorProfilePictureUrl,
                                     title: sq.title,
                                     eventDatetime: sq.eventDatetime,
                                     location: sq.location,

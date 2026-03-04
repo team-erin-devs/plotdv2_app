@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import '../services/auth_service.dart';
+import '../widgets/bouncing_button.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -79,8 +80,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               const Spacer(flex: 4),
 
               // ── Join Now! Button ──
-              GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/register'),
+              BouncingButton(
+                onPressed: () => Navigator.pushNamed(context, '/register'),
                 child: Container(
                   width: double.infinity,
                   height: 56,

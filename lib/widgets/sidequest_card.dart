@@ -2,12 +2,14 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'bouncing_button.dart';
 
 enum SidequestType { own, friend, community }
 
 class SidequestCard extends StatelessWidget {
   final String creatorName;
   final String creatorUsername;
+  final String? creatorProfilePictureUrl;
   final String title;
   final DateTime eventDatetime;
   final DateTime? endDatetime;
@@ -19,6 +21,7 @@ class SidequestCard extends StatelessWidget {
     super.key,
     required this.creatorName,
     required this.creatorUsername,
+    this.creatorProfilePictureUrl,
     required this.title,
     required this.eventDatetime,
     this.endDatetime,
@@ -58,8 +61,8 @@ class SidequestCard extends StatelessWidget {
     final endTimeStr = DateFormat('h:mma').format(endT.toLocal()).toLowerCase();
     final timeRangeStr = '$startTimeStr - $endTimeStr';
 
-    return GestureDetector(
-      onTap: onTap,
+    return BouncingButton(
+      onPressed: onTap,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -86,6 +89,16 @@ class SidequestCard extends StatelessWidget {
                         color: Colors.white,
                         shape: BoxShape.circle,
                       ),
+                      clipBehavior: Clip.hardEdge,
+                      child: creatorProfilePictureUrl != null && creatorProfilePictureUrl!.isNotEmpty
+                        ? Image(
+                            image: (creatorProfilePictureUrl!.startsWith('images/') || creatorProfilePictureUrl!.startsWith('assets/images/'))
+                              ? AssetImage(creatorProfilePictureUrl!.startsWith('images/') ? 'assets/$creatorProfilePictureUrl' : creatorProfilePictureUrl!)
+                              : NetworkImage(creatorProfilePictureUrl!) as ImageProvider,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Icon(Icons.person, size: 20, color: Colors.grey[400]),
+                          )
+                        : Icon(Icons.person, size: 20, color: Colors.grey[400]),
                     ),
                     const SizedBox(width: 12),
                     Column(

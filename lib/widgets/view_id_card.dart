@@ -164,7 +164,9 @@ class _ViewIDCardState extends State<ViewIDCard> with SingleTickerProviderStateM
                                 radius: 50,
                                 backgroundColor: Colors.grey[800],
                                 backgroundImage: widget.profilePictureUrl != null && widget.profilePictureUrl!.isNotEmpty
-                                    ? NetworkImage(widget.profilePictureUrl!)
+                                    ? (widget.profilePictureUrl!.startsWith('images/') || widget.profilePictureUrl!.startsWith('assets/images/')
+                                        ? AssetImage(widget.profilePictureUrl!.startsWith('images/') ? 'assets/${widget.profilePictureUrl}' : widget.profilePictureUrl!)
+                                        : NetworkImage(widget.profilePictureUrl!)) as ImageProvider
                                     : null,
                                 child: widget.profilePictureUrl == null || widget.profilePictureUrl!.isEmpty
                                     ? Icon(

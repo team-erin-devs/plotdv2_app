@@ -2,10 +2,11 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import '../services/authenticated_api_service.dart';
 import '../widgets/sidequest_card.dart';
+import '../widgets/bouncing_button.dart';
 import 'sidequest_detail_screen.dart';
+import 'post_sidequest_screen.dart';
 
 // ─── Sidequest model ─────────────────────────────────────────────────────────
 
@@ -14,6 +15,7 @@ class _HomeSidequest {
   final String title;
   final String creatorFirstName;
   final String creatorUsername;
+  final String? creatorProfilePictureUrl;
   final String vibe;
   final DateTime eventDatetime;
   final String location;
@@ -27,6 +29,7 @@ class _HomeSidequest {
     required this.title,
     required this.creatorFirstName,
     required this.creatorUsername,
+    this.creatorProfilePictureUrl,
     required this.vibe,
     required this.eventDatetime,
     required this.location,
@@ -44,6 +47,7 @@ class _HomeSidequest {
           ? json['creator']['first_name']
           : (json['creator']?['username'] ?? 'friend'),
       creatorUsername: json['creator']?['username'] ?? 'unknown',
+      creatorProfilePictureUrl: json['creator']?['profile_picture'],
       vibe: json['vibe'] ?? 'chill',
       eventDatetime: DateTime.parse(json['event_datetime']),
       location: json['location'] ?? 'Location TBD',
@@ -140,6 +144,8 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       } catch (_) {}
 
+      final now = DateTime.now();
+      allQuests.removeWhere((q) => q.eventDatetime.isBefore(now.subtract(const Duration(hours: 4))));
       allQuests.sort((a, b) => a.eventDatetime.compareTo(b.eventDatetime));
 
       setState(() {
@@ -268,6 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: SidequestCard(
                                 creatorName: sq.isOwn ? (_firstName ?? 'You') : sq.creatorFirstName,
                                 creatorUsername: sq.isOwn ? (_username ?? 'you') : sq.creatorUsername,
+                                creatorProfilePictureUrl: sq.creatorProfilePictureUrl,
                                 title: sq.title,
                                 eventDatetime: sq.eventDatetime,
                                 location: sq.location,
@@ -312,7 +319,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         // ── Carousel ──
                         SizedBox(
-                          height: 200,
+                          height: 160,
                           child: PageView.builder(
                             controller: _carouselCtrl,
                             padEnds: true,
@@ -419,33 +426,35 @@ class _InspoCard extends StatelessWidget {
           const Spacer(),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('tap the Post tab to create this quest!',
-                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
-                    backgroundColor: const Color(0xFF455A64),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: BouncingButton(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PostSidequestScreen(
+                        initialTitle: title,
+                        initialVibe: vibe,
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFB300),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFB300),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  elevation: 0,
                 ),
-                elevation: 0,
-              ),
-              child: Text(
-                'Create Sidequest',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
+                child: Text(
+                  'Create Sidequest',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),

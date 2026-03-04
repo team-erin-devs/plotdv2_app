@@ -4,9 +4,17 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:intl/intl.dart';
 import '../services/authenticated_api_service.dart';
+import '../widgets/bouncing_button.dart';
 
 class PostSidequestScreen extends StatefulWidget {
-  const PostSidequestScreen({super.key});
+  final String? initialTitle;
+  final String? initialVibe;
+
+  const PostSidequestScreen({
+    super.key,
+    this.initialTitle,
+    this.initialVibe,
+  });
 
   @override
   State<PostSidequestScreen> createState() => _PostSidequestScreenState();
@@ -24,6 +32,17 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
   DateTime? _selectedDate;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialTitle != null) {
+      _titleController.text = widget.initialTitle!;
+    }
+    if (widget.initialVibe != null) {
+      selectedVibe = widget.initialVibe!;
+    }
+  }
 
   @override
   void dispose() {
@@ -128,6 +147,9 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
 
       if (response.statusCode == 201) {
         if (mounted) {
+          // Clear stack and go to home screen explicitly (to avoid dumping to welcome)
+          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+          // Then push the confirmation on top
           Navigator.pushNamed(context, '/sidequest-confirmation');
           // Reset form
           _titleController.clear();
@@ -385,8 +407,8 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              GestureDetector(
-                                onTap: () {
+                              BouncingButton(
+                                onPressed: () {
                                   if (numPeople > 1) setState(() => numPeople--);
                                 },
                                 child: Container(
@@ -419,8 +441,8 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
                                   ),
                                 ],
                               ),
-                              GestureDetector(
-                                onTap: () => setState(() => numPeople++),
+                              BouncingButton(
+                                onPressed: () => setState(() => numPeople++),
                                 child: Container(
                                   decoration: const BoxDecoration(
                                     color: Color(0xFFFFB300),
@@ -450,39 +472,39 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 24),
-          
                         // ── Post Section ──
                         SizedBox(
                           width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _isPosting ? null : _postSidequest,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFFB300),
-                              disabledBackgroundColor: const Color(0xFFFFB300).withValues(alpha: 0.5),
-                              padding: const EdgeInsets.symmetric(vertical: 22),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(6),
+                          child: BouncingButton(
+                            child: ElevatedButton(
+                              onPressed: _isPosting ? null : _postSidequest,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFFB300),
+                                disabledBackgroundColor: const Color(0xFFFFB300).withOpacity(0.5),
+                                padding: const EdgeInsets.symmetric(vertical: 22),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                elevation: 0,
                               ),
-                              elevation: 0,
+                              child: _isPosting
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.black,
+                                        strokeWidth: 2.5,
+                                      ),
+                                    )
+                                  : Text(
+                                      'Post Sidequest!',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                             ),
-                            child: _isPosting
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.black,
-                                      strokeWidth: 2.5,
-                                    ),
-                                  )
-                                : Text(
-                                    'Post Sidequest!',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w800,
-                                      color: const Color(0xFF1E1E1E),
-                                    ),
-                                  ),
                           ),
                         ),
                         const SizedBox(height: 16),

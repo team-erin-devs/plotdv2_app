@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../services/authenticated_api_service.dart';
 import '../services/auth_service.dart';
+import '../widgets/bouncing_button.dart';
 import 'past_sidequest_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -248,7 +250,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Icon(Icons.add, size: 28, color: Colors.black87),
+                            if (_isOwnProfile)
+                              const Icon(Icons.add, size: 28, color: Colors.black87)
+                            else
+                              IconButton(
+                                icon: const Icon(Icons.arrow_back_ios, color: Colors.black87, size: 24),
+                                onPressed: () => Navigator.pop(context),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
                             Image.asset(
                               'assets/images/plotd-title.png',
                               height: 32,
@@ -270,7 +280,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   radius: 44,
                                   backgroundColor: const Color(0xFFE0E0E0),
                                   backgroundImage: _profilePictureUrl.isNotEmpty
-                                      ? NetworkImage(_profilePictureUrl)
+                                      ? (_profilePictureUrl.startsWith('images/') || _profilePictureUrl.startsWith('assets/images/')
+                                          ? AssetImage(_profilePictureUrl.startsWith('images/') ? 'assets/$_profilePictureUrl' : _profilePictureUrl)
+                                          : NetworkImage(_profilePictureUrl)) as ImageProvider
                                       : null,
                                   child: _profilePictureUrl.isEmpty
                                       ? Icon(Icons.person, size: 44, color: Colors.grey[500])
@@ -339,21 +351,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     children: [
                                       if (_isOwnProfile)
                                         Expanded(
-                                          child: OutlinedButton(
-                                            onPressed: () {},
-                                            style: OutlinedButton.styleFrom(
-                                              foregroundColor: Colors.black,
-                                              side: const BorderSide(color: Color(0xFF2D2D2D)),
-                                              padding: const EdgeInsets.symmetric(vertical: 8),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(4),
+                                          child: BouncingButton(
+                                            child: OutlinedButton(
+                                              onPressed: () {},
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor: Colors.black,
+                                                side: const BorderSide(color: Color(0xFF2D2D2D)),
+                                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
                                               ),
-                                            ),
-                                            child: Text(
-                                              'Edit profile',
-                                              style: GoogleFonts.plusJakartaSans(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600,
+                                              child: Text(
+                                                'Edit Profile',
+                                                style: GoogleFonts.plusJakartaSans(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w800,
+                                                ),
                                               ),
                                             ),
                                           ),
@@ -403,11 +417,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         // Interests list
                       if (_interests.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                        Align(
+                          alignment: Alignment.centerLeft,
                           child: Wrap(
                             spacing: 8,
                             runSpacing: 8,
+                            alignment: WrapAlignment.start,
                             children: _interests.map((interest) {
                               return Container(
                                 padding: const EdgeInsets.symmetric(
@@ -415,12 +430,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   vertical: 8,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: const Color(0xFFFFF3D4), // light yellow
                                   border: Border.all(
-                                    color: const Color(0xFFE0E0E0),
+                                    color: const Color(0xFFFFB300), // dark yellow edge
                                     width: 1,
                                   ),
-                                  borderRadius: BorderRadius.circular(20),
+                                  borderRadius: BorderRadius.circular(4), // Slightly sharper corners matching mockup
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -434,7 +449,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       interest['label']?.toString() ?? '',
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 13,
-                                        fontWeight: FontWeight.w500,
+                                        fontWeight: FontWeight.w700,
                                         color: Colors.black87,
                                       ),
                                     ),
@@ -445,8 +460,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         )
                       else
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                        Align(
+                          alignment: Alignment.centerLeft,
                           child: Text(
                             'no interests listed yet.',
                             style: GoogleFonts.plusJakartaSans(
@@ -456,7 +471,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               fontStyle: FontStyle.italic,
                             ),
                           ),
-                        ),  const SizedBox(height: 32),
+                        ),  
+                        const SizedBox(height: 32),
 
                         // ── Sidequest Gallery ──
                         Text(
@@ -468,44 +484,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 10,
+                        if (_pastSidequests.isEmpty)
+                          Container(
+                            height: 120, // Explicit height, outside of GridView
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFE8E0D8)),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              'no past quests yet!',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black38,
+                              ),
+                            ),
+                          )
+                        else
+                          MasonryGridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate: const SliverSimpleGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                            ),
                             mainAxisSpacing: 10,
-                            childAspectRatio: 1.15, // Increase to make them less tall
-                          ),
-                          itemCount: _pastSidequests.isEmpty ? 1 : _pastSidequests.length,
-                          itemBuilder: (context, index) {
-                            if (_pastSidequests.isEmpty) {
-                               return Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: const Color(0xFFE8E0D8)),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    'no past quests yet!',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black38,
-                                    ),
-                                  ),
-                               );
-                            }
+                            crossAxisSpacing: 10,
+                            itemCount: _pastSidequests.length,
+                            itemBuilder: (context, index) {
 
                             final quest = _pastSidequests[index];
                             final title = quest['title'] ?? 'untitled';
                             final creatorUsername = quest['creator']?['username'] ?? 'unknown';
-                            final vibe = quest['vibe'] ?? '';
-                            final vibes = vibe.toString().isNotEmpty ? [vibe.toString()] : <String>[];
+                            final vibe = quest['vibe']?.toString() ?? 'chill';
+                            final isPublic = quest['post_to_campus_board'] == true;
+                            
+                            // Check for images
+                            final List<dynamic> images = quest['images'] ?? [];
+                            final hasImage = images.isNotEmpty;
 
-                            // Determine colors
+                            final tags = <String>[
+                              isPublic ? 'community' : 'friends-only',
+                            ];
+
+                            String typeEmoji = '📌$vibe';
+                            if (vibe == 'productive') typeEmoji = '☕coffee';
+                            else if (vibe == 'social') typeEmoji = '🗣️social';
+                            else if (vibe == 'chill') typeEmoji = '🛋️chill';
+                            else if (vibe == 'fun') typeEmoji = '🎉fun';
+                            else if (vibe == 'active') typeEmoji = '🏃active';
+
+                            // Determine colors for sticky notes
                             final colors = [
                                const Color(0xFFFFF3D4), // yellow
                                const Color(0xFFDDE9F7), // light blue
@@ -519,8 +551,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                const Color(0xFF64A8DB), // dark blue
                             ];
 
-                            return GestureDetector(
-                              onTap: () {
+                            return BouncingButton(
+                              onPressed: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -530,14 +562,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 );
                               },
-                              child: GalleryStickyNote(
-                                 color: colors[index % colors.length],
-                                 accentColor: accentColors[index % accentColors.length],
-                                 title: title,
-                                 hostedBy: creatorUsername == _username ? 'you' : creatorUsername,
-                                 tags: vibes,
-                                 typeEmoji: '📌$vibe',
-                              ),
+                              child: hasImage
+                                ? GalleryImageCard(
+                                    imageUrl: images.first.toString(),
+                                    title: title,
+                                  )
+                                : GalleryStickyNote(
+                                    color: colors[index % colors.length],
+                                    accentColor: accentColors[index % accentColors.length],
+                                    title: title,
+                                    hostedBy: creatorUsername == _username ? 'you' : creatorUsername,
+                                    tags: tags,
+                                    typeEmoji: typeEmoji,
+                                  ),
                             );
                           },
                         ),
@@ -576,59 +613,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildRelationshipButton() {
     if (_isFriend) {
-      return ElevatedButton(
-        onPressed: null,
-        style: ElevatedButton.styleFrom(
-          disabledBackgroundColor: const Color(0xFFE0E0E0),
-          disabledForegroundColor: Colors.black87,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-          elevation: 0,
+      return BouncingButton(
+        child: ElevatedButton(
+          onPressed: null,
+          style: ElevatedButton.styleFrom(
+            disabledBackgroundColor: const Color(0xFFE0E0E0),
+            disabledForegroundColor: Colors.black87,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            elevation: 0,
+          ),
+          child: Text('Friends', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
         ),
-        child: Text('Friends', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
       );
     } else if (_pendingReceivedId != null) {
-      return ElevatedButton(
-        onPressed: _isFollowLoading ? null : _handleAccept,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF64A8DB), // secondary blue
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-          elevation: 0,
+      return BouncingButton(
+        child: ElevatedButton(
+          onPressed: _isFollowLoading ? null : _handleAccept,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF64A8DB), // secondary blue
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            elevation: 0,
+          ),
+          child: _isFollowLoading
+              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : Text('Accept', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
         ),
-        child: _isFollowLoading
-            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-            : Text('Accept', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
       );
     } else if (_pendingSent) {
-      return ElevatedButton(
-        onPressed: null,
-        style: ElevatedButton.styleFrom(
-          disabledBackgroundColor: Colors.white,
-          disabledForegroundColor: Colors.black87,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
-            side: const BorderSide(color: Color(0xFFE0E0E0)),
+      return BouncingButton(
+        child: ElevatedButton(
+          onPressed: null,
+          style: ElevatedButton.styleFrom(
+            disabledBackgroundColor: Colors.white,
+            disabledForegroundColor: Colors.black87,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
+              side: const BorderSide(color: Color(0xFFE0E0E0)),
+            ),
+            elevation: 0,
           ),
-          elevation: 0,
+          child: Text('Requested', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
         ),
-        child: Text('Requested', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
       );
     } else {
-      return ElevatedButton(
-        onPressed: _isFollowLoading ? null : _handleFollow,
-        style: ElevatedButton.styleFrom(
-           backgroundColor: const Color(0xFF64A8DB), // secondary blue matching search screen
-           foregroundColor: Colors.white,
-           padding: const EdgeInsets.symmetric(vertical: 8),
-           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-           elevation: 0,
+      return BouncingButton(
+        child: ElevatedButton(
+          onPressed: _isFollowLoading ? null : _handleFollow,
+          style: ElevatedButton.styleFrom(
+             backgroundColor: const Color(0xFF64A8DB), // secondary blue matching search screen
+             foregroundColor: Colors.white,
+             padding: const EdgeInsets.symmetric(vertical: 8),
+             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+             elevation: 0,
+          ),
+          child: _isFollowLoading
+              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : Text('Add', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
         ),
-        child: _isFollowLoading
-            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-            : Text('Add', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
       );
     }
   }
@@ -701,7 +746,7 @@ class GalleryStickyNote extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Container(height: 1, color: const Color(0xFF1E1E1E).withOpacity(0.1)),
-                const Spacer(),
+                const SizedBox(height: 16),
                 Wrap(
                   spacing: 4,
                   runSpacing: 4,
@@ -788,4 +833,106 @@ class _FoldPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ─── Custom Gallery Image Card Widget ───────────────────────────────────────
+
+class GalleryImageCard extends StatelessWidget {
+  final String imageUrl;
+  final String title;
+
+  const GalleryImageCard({
+    super.key,
+    required this.imageUrl,
+    required this.title,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: const Color(0xFFE0E0E0),
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Stack(
+        children: [
+          // Background Image
+          // Background Image
+          (imageUrl.startsWith('images/') || imageUrl.startsWith('assets/images/'))
+              ? Image.asset(
+                  imageUrl.startsWith('images/') ? 'assets/$imageUrl' : imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: const Color(0xFFE0E0E0),
+                      height: 150,
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.broken_image, color: Colors.black38),
+                    );
+                  },
+                )
+              : Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: const Color(0xFFE0E0E0),
+                      height: 150,
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.broken_image, color: Colors.black38),
+                    );
+                  },
+                ),
+          
+          // Gradient Overlay
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.7),
+                    Colors.black.withOpacity(0.0),
+                    Colors.black.withOpacity(0.0),
+                    Colors.black.withOpacity(0.3),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          
+          // Visibility Icon (Top Right)
+          const Positioned(
+            top: 8,
+            right: 8,
+            child: CircleAvatar(
+              radius: 12,
+              backgroundColor: Colors.white,
+              child: Icon(Icons.remove_red_eye_outlined, size: 14, color: Colors.black),
+            ),
+          ),
+
+          // Title Text (Bottom Left)
+          Positioned(
+            bottom: 12,
+            left: 12,
+            right: 12,
+            child: Text(
+              title,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+                height: 1.1,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
