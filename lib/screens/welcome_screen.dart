@@ -47,38 +47,20 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               const Spacer(flex: 3),
 
               // ── Plotd* Logo ──
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Yellow asterisk icon
-                  Image.asset(
-                    'assets/images/asterik.png',
-                    width: 50,
-                    color: const Color(0xFFF5C542),
-                  ),
-                  const SizedBox(width: 8),
-                  // "Plotd" text
-                  Text(
-                    'Plotd',
-                    style: TextStyle(
-                      fontFamily: 'Urbanist',
-                      fontSize: 52,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFFF5C5A3),
-                      letterSpacing: -1,
-                    ),
-                  ),
-                  // Smaller purple asterisk
-                  Transform.translate(
-                    offset: const Offset(2, -18),
-                    child: Image.asset(
-                      'assets/images/asterik.png',
-                      width: 24,
-                      color: const Color(0xFFA8A0C8),
-                    ),
-                  ),
-                ],
+              // ── Plotd* Logo ──
+              ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [
+                    Color(0xFFF5C542), // yellow
+                    Color(0xFFF2A6A2), // pink
+                    Color(0xFFA8A0C8), // blue/purple
+                  ],
+                ).createShader(bounds),
+                blendMode: BlendMode.srcATop,
+                child: Image.asset(
+                  'assets/images/plotd-title.png',
+                  height: 60,
+                ),
               ),
               const SizedBox(height: 4),
               // Tagline

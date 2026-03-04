@@ -198,34 +198,9 @@ class _SidequestDetailScreenState extends State<SidequestDetailScreen> {
                       constraints: const BoxConstraints(),
                     ),
                     Expanded(
-                      child: Text.rich(
-                        TextSpan(children: [
-                          TextSpan(
-                            text: 'Plot',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF1E1E1E),
-                            ),
-                          ),
-                          TextSpan(
-                            text: 'd',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF1E1E1E),
-                            ),
-                          ),
-                          WidgetSpan(
-                            alignment: PlaceholderAlignment.top,
-                            child: Image.asset(
-                              'assets/images/asterik.png',
-                              width: 20,
-                              color: const Color(0xFF1E1E1E),
-                            ),
-                          ),
-                        ]),
-                        textAlign: TextAlign.center,
+                      child: Image.asset(
+                        'assets/images/plotd-title.png',
+                        height: 32,
                       ),
                     ),
                     const SizedBox(width: 28), // balance the back button
@@ -457,12 +432,12 @@ class _SidequestDetailScreenState extends State<SidequestDetailScreen> {
                             child: SizedBox(
                                width: 100,
                                height: 100,
-                               child: CustomPaint(
-                                  painter: ThickStarPainter(
-                                     fillColor: _accentColor,
-                                     borderColor: Colors.white,
-                                     borderWidth: 4.0,
-                                  ),
+                               child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                     Image.asset('assets/images/asterik.png', width: 100, color: Colors.white),
+                                     Image.asset('assets/images/asterik.png', width: 88, color: _accentColor),
+                                  ],
                                ),
                             ),
                          ),

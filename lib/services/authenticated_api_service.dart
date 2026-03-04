@@ -171,6 +171,33 @@ class AuthenticatedApiService {
     return response;
   }
 
+  /// Make an authenticated PATCH request
+  static Future<http.Response> authenticatedPatch(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
+    final headers = await getAuthHeaders();
+    final response = await http.patch(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: headers,
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 401) {
+      final refreshed = await refreshAccessToken();
+      if (refreshed) {
+        final newHeaders = await getAuthHeaders();
+        return await http.patch(
+          Uri.parse('$baseUrl$endpoint'),
+          headers: newHeaders,
+          body: jsonEncode(body),
+        );
+      }
+    }
+
+    return response;
+  }
+
   /// Make an authenticated DELETE request
   static Future<http.Response> authenticatedDelete(String endpoint) async {
     final headers = await getAuthHeaders();

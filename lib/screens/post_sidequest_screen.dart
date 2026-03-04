@@ -187,33 +187,9 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
-                        Text.rich(
-                           TextSpan(children: [
-                              TextSpan(
-                                 text: 'Plot',
-                                 style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF1E1E1E),
-                                 ),
-                              ),
-                              TextSpan(
-                                 text: 'd',
-                                 style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF1E1E1E),
-                                 ),
-                              ),
-                              WidgetSpan(
-                                alignment: PlaceholderAlignment.top,
-                                child: Image.asset(
-                                  'assets/images/asterik.png',
-                                  width: 18,
-                                  color: const Color(0xFF1E1E1E),
-                                ),
-                              ),
-                           ]),
+                        Image.asset(
+                          'assets/images/plotd-title.png',
+                          height: 32,
                         ),
                         const SizedBox(width: 28), // Balance for centering
                      ],

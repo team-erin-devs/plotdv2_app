@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import '../services/authenticated_api_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -11,6 +13,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   static const int _totalPages = 3;
+  bool _isLoading = false;
 
   // Selections for each page
   final Set<String> _page1Selections = {};
@@ -43,8 +46,62 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  void _finish() {
-    Navigator.pushReplacementNamed(context, '/home');
+  Future<void> _finish() async {
+    setState(() => _isLoading = true);
+
+    try {
+      if (_page3Selections.isNotEmpty) {
+        final List<Map<String, String>> interestsPayload = [];
+        
+        for (final selection in _page3Selections) {
+          final parts = selection.split(':');
+          if (parts.length == 2) {
+             // We need emoji. We have 'category:label' in the key.
+             // We must reverse-lookup the emoji, or re-structure how we save it.
+             // Actually, letting string matching handle it below:
+          }
+        }
+        
+        // Let's iterate all categories to find the matching emoji for the selected labels
+        // because the key is "category:label", the option 2 is label.
+        final categories = <String, List<(String, String)>>{
+          'arts': [('🎨', 'art'), ('📚', 'reading'), ('📸', 'photography'), ('🧩', 'puzzles')],
+          'entertainments': [('🎤', 'karaoke'), ('🎵', 'concerts'), ('🎬', 'movie/ tv series')],
+          'food & drinks': [('☕', 'coffee'), ('🍻', 'bar crawls'), ('🍲', 'hotpot'), ('🧋', 'bubble tea'), ('🥗', 'healthy meal prep')],
+          'sports': [('🏋️', 'gym'), ('🧘', 'yoga'), ('🏃', 'run club'), ('🏀', 'basketball'), ('🏐', 'volleyball'), ('🥾', 'hiking'), ('🧗', 'climbing')],
+        };
+        
+        for (final selection in _page3Selections) {
+           final parts = selection.split(':');
+           if (parts.length == 2) {
+              final cat = parts[0];
+              final label = parts[1];
+              final options = categories[cat];
+              if (options != null) {
+                 final match = options.where((o) => o.$2 == label).firstOrNull;
+                 if (match != null) {
+                    interestsPayload.add({
+                       'emoji': match.$1,
+                       'label': match.$2,
+                    });
+                 }
+              }
+           }
+        }
+
+        await AuthenticatedApiService.authenticatedPatch(
+          '/api/user/profile/',
+          {'interests': interestsPayload},
+        );
+      }
+    } catch (e) {
+      debugPrint('Error saving onboarding data: $e');
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      Navigator.pushReplacementNamed(context, '/home');
+    }
   }
 
   @override
@@ -126,15 +183,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                   ),
                   child: Center(
-                    child: Text(
-                      _currentPage < _totalPages - 1 ? 'Continue' : 'Get Started',
-                      style: const TextStyle(
-                        fontFamily: 'Urbanist',
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: _isLoading 
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Text(
+                          _currentPage < _totalPages - 1 ? 'Continue' : 'Get Started',
+                          style: const TextStyle(
+                            fontFamily: 'Urbanist',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
                   ),
                 ),
               ),

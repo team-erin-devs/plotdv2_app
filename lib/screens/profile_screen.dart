@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../services/authenticated_api_service.dart';
 import '../services/auth_service.dart';
+import 'past_sidequest_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final int? userId;
@@ -24,22 +25,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _sidequestsCompleted = 0;
   int _sidequestsHosted = 0;
   List<Map<String, dynamic>> _activeSidequests = [];
+  List<Map<String, dynamic>> _pastSidequests = [];
 
   // Follow state (for other user profiles)
   bool _isFriend = false;
   bool _pendingSent = false;
+  int? _pendingReceivedId;
   bool _isFollowLoading = false;
 
   bool get _isOwnProfile => widget.userId == null;
 
-  // Placeholder interests (would come from backend in a real setup)
-  final List<Map<String, String>> _interests = [
-    {'emoji': '🏀', 'label': 'basketball'},
-    {'emoji': '🎸', 'label': 'guitar'},
-    {'emoji': '🔨', 'label': 'building'},
-    {'emoji': '🍴', 'label': 'food'},
-    {'emoji': '🏋️', 'label': 'powerlift'},
-  ];
+  List<Map<String, dynamic>> _interests = [];
 
   @override
   void initState() {
@@ -78,6 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           : data['user']?['first_name'] ?? data['user']?['username'] ?? 'User';
       _username = data['user']?['username'] ?? 'user';
       _profilePictureUrl = data['profile_picture'] ?? '';
+      _interests = List<Map<String, dynamic>>.from(data['interests'] ?? []);
     }
 
     if (results[1].statusCode == 200) {
@@ -89,6 +86,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final Set<int> seenIds = {};
     _activeSidequests = [];
+    _pastSidequests = [];
+    
+    final now = DateTime.now();
     for (int i = 2; i <= 3; i++) {
       if (results[i].statusCode == 200) {
         final decoded = jsonDecode(results[i].body);
@@ -96,11 +96,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
         for (final item in items) {
           final id = item['id'] as int;
           if (seenIds.add(id)) {
-            _activeSidequests.add(item as Map<String, dynamic>);
+            final sq = item as Map<String, dynamic>;
+            final eventTime = DateTime.tryParse(sq['event_datetime'] ?? '');
+            if (eventTime != null && eventTime.isBefore(now)) {
+              _pastSidequests.add(sq);
+            } else {
+              _activeSidequests.add(sq);
+            }
           }
         }
       }
     }
+    
+    // Sort past sidequests by most recent
+    _pastSidequests.sort((a, b) {
+      final timeA = DateTime.tryParse(a['event_datetime'] ?? '') ?? DateTime(2000);
+      final timeB = DateTime.tryParse(b['event_datetime'] ?? '') ?? DateTime(2000);
+      return timeB.compareTo(timeA);
+    });
   }
 
   Future<void> _loadOtherProfile() async {
@@ -133,9 +146,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       _activeSidequests = List<Map<String, dynamic>>.from(
           data['active_sidequests'] ?? []);
+      _pastSidequests = List<Map<String, dynamic>>.from(
+          data['past_sidequests'] ?? []);
 
       _isFriend = data['is_friend'] ?? false;
       _pendingSent = data['pending_sent'] ?? false;
+      _pendingReceivedId = data['pending_received_id'];
+      
+      _interests = List<Map<String, dynamic>>.from(data['interests'] ?? []);
     }
   }
 
@@ -160,6 +178,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       debugPrint('🔴 Follow error: $e');
+    }
+    if (mounted) setState(() => _isFollowLoading = false);
+  }
+
+  Future<void> _handleAccept() async {
+    if (_pendingReceivedId == null) return;
+    setState(() => _isFollowLoading = true);
+    try {
+      final res = await AuthenticatedApiService.authenticatedPost(
+        '/api/friends/request/$_pendingReceivedId/respond/',
+        {'action': 'accept'},
+      );
+      if (mounted && res.statusCode == 200) {
+        setState(() {
+          _isFriend = true;
+          _pendingReceivedId = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('friend request accepted! 🎉',
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
+            backgroundColor: const Color(0xFF66BB6A), // green
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('🔴 Accept error: $e');
     }
     if (mounted) setState(() => _isFollowLoading = false);
   }
@@ -202,33 +249,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Icon(Icons.add, size: 28, color: Colors.black87),
-                            Text.rich(
-                              TextSpan(children: [
-                                TextSpan(
-                                  text: 'Plot',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF1E1E1E),
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: 'd',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF1E1E1E),
-                                  ),
-                                ),
-                                WidgetSpan(
-                                  alignment: PlaceholderAlignment.top,
-                                  child: Image.asset(
-                                    'assets/images/asterik.png',
-                                    width: 20,
-                                    color: const Color(0xFF1E1E1E),
-                                  ),
-                                ),
-                              ]),
+                            Image.asset(
+                              'assets/images/plotd-title.png',
+                              height: 32,
                             ),
                             const Icon(Icons.notifications_none, size: 28, color: Colors.black87),
                           ],
@@ -337,30 +360,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         )
                                       else
                                         Expanded(
-                                          child: ElevatedButton(
-                                            onPressed: (_isFriend || _pendingSent || _isFollowLoading) ? null : _handleFollow,
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: _isFriend ? const Color(0xFF66BB6A) : _pendingSent ? const Color(0xFF90A4AE) : const Color(0xFFFFB300),
-                                              disabledBackgroundColor: _isFriend ? const Color(0xFF66BB6A).withOpacity(0.7) : const Color(0xFF90A4AE).withOpacity(0.7),
-                                              foregroundColor: Colors.white,
-                                              disabledForegroundColor: Colors.white,
-                                              padding: const EdgeInsets.symmetric(vertical: 8),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              elevation: 0,
-                                            ),
-                                            child: _isFollowLoading
-                                                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                                : Text(
-                                                    _isFriend ? 'friends ✓' : _pendingSent ? 'request sent' : 'follow',
-                                                    style: GoogleFonts.plusJakartaSans(
-                                                      fontSize: 13,
-                                                      fontWeight: FontWeight.w800,
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                          ),
+                                          child: _buildRelationshipButton(),
                                         ),
                                       const SizedBox(width: 8),
                                       Expanded(
@@ -401,38 +401,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: Colors.black,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _interests.map((interest) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFF3D4),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: const Color(0xFFFFB300)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(interest['emoji']!,
-                                      style: const TextStyle(fontSize: 16)),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    interest['label']!,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.black87,
-                                    ),
+                        // Interests list
+                      if (_interests.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _interests.map((interest) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  border: Border.all(
+                                    color: const Color(0xFFE0E0E0),
+                                    width: 1,
                                   ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(height: 32),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      interest['emoji']?.toString() ?? '',
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      interest['label']?.toString() ?? '',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        )
+                      else
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Text(
+                            'no interests listed yet.',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.black45,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),  const SizedBox(height: 32),
 
                         // ── Sidequest Gallery ──
                         Text(
@@ -453,9 +477,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             mainAxisSpacing: 10,
                             childAspectRatio: 1.15, // Increase to make them less tall
                           ),
-                          itemCount: _activeSidequests.isEmpty ? 1 : _activeSidequests.length,
+                          itemCount: _pastSidequests.isEmpty ? 1 : _pastSidequests.length,
                           itemBuilder: (context, index) {
-                            if (_activeSidequests.isEmpty) {
+                            if (_pastSidequests.isEmpty) {
                                return Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
@@ -465,7 +489,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                   alignment: Alignment.center,
                                   child: Text(
-                                    'no quests yet!',
+                                    'no past quests yet!',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -475,7 +499,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                );
                             }
 
-                            final quest = _activeSidequests[index];
+                            final quest = _pastSidequests[index];
                             final title = quest['title'] ?? 'untitled';
                             final creatorUsername = quest['creator']?['username'] ?? 'unknown';
                             final vibe = quest['vibe'] ?? '';
@@ -495,13 +519,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                const Color(0xFF64A8DB), // dark blue
                             ];
 
-                            return GalleryStickyNote(
-                               color: colors[index % colors.length],
-                               accentColor: accentColors[index % accentColors.length],
-                               title: title,
-                               hostedBy: creatorUsername == _username ? 'you' : creatorUsername,
-                               tags: vibes,
-                               typeEmoji: '📌$vibe',
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => PastSidequestScreen(
+                                      sidequestId: quest['id'],
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: GalleryStickyNote(
+                                 color: colors[index % colors.length],
+                                 accentColor: accentColors[index % accentColors.length],
+                                 title: title,
+                                 hostedBy: creatorUsername == _username ? 'you' : creatorUsername,
+                                 tags: vibes,
+                                 typeEmoji: '📌$vibe',
+                              ),
                             );
                           },
                         ),
@@ -536,6 +572,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildRelationshipButton() {
+    if (_isFriend) {
+      return ElevatedButton(
+        onPressed: null,
+        style: ElevatedButton.styleFrom(
+          disabledBackgroundColor: const Color(0xFFE0E0E0),
+          disabledForegroundColor: Colors.black87,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          elevation: 0,
+        ),
+        child: Text('Friends', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
+      );
+    } else if (_pendingReceivedId != null) {
+      return ElevatedButton(
+        onPressed: _isFollowLoading ? null : _handleAccept,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF64A8DB), // secondary blue
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          elevation: 0,
+        ),
+        child: _isFollowLoading
+            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+            : Text('Accept', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
+      );
+    } else if (_pendingSent) {
+      return ElevatedButton(
+        onPressed: null,
+        style: ElevatedButton.styleFrom(
+          disabledBackgroundColor: Colors.white,
+          disabledForegroundColor: Colors.black87,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+            side: const BorderSide(color: Color(0xFFE0E0E0)),
+          ),
+          elevation: 0,
+        ),
+        child: Text('Requested', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
+      );
+    } else {
+      return ElevatedButton(
+        onPressed: _isFollowLoading ? null : _handleFollow,
+        style: ElevatedButton.styleFrom(
+           backgroundColor: const Color(0xFF64A8DB), // secondary blue matching search screen
+           foregroundColor: Colors.white,
+           padding: const EdgeInsets.symmetric(vertical: 8),
+           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+           elevation: 0,
+        ),
+        child: _isFollowLoading
+            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+            : Text('Add', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800)),
+      );
+    }
   }
 }
 

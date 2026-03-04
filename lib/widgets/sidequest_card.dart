@@ -209,18 +209,22 @@ class SidequestCard extends StatelessWidget {
                     offset: const Offset(0, 2),
                   ),
                ],
-               shape: BoxShape.circle, // helps with shadow blending
+               shape: BoxShape.circle,
             ),
-            child: SizedBox(
-              width: 50,
-              height: 50,
-              child: CustomPaint(
-                painter: _ThickStarPainter(
-                  fillColor: _accentColor,
-                  borderColor: Colors.white,
-                  borderWidth: 3.0,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/asterik.png',
+                  width: 50,
+                  color: Colors.white,
                 ),
-              ),
+                Image.asset(
+                  'assets/images/asterik.png',
+                  width: 44,
+                  color: _accentColor,
+                ),
+              ],
             ),
           ),
         ),

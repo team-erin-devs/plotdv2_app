@@ -284,33 +284,9 @@ class _SidequestFeedScreenState extends State<SidequestFeedScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 const Icon(Icons.add, color: Colors.black, size: 28),
-                                Text.rich(
-                                  TextSpan(children: [
-                                    TextSpan(
-                                      text: 'Plot',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 28,
-                                        fontWeight: FontWeight.w800,
-                                        color: const Color(0xFF1E1E1E),
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: 'd',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 28,
-                                        fontWeight: FontWeight.w800,
-                                        color: const Color(0xFF1E1E1E),
-                                      ),
-                                    ),
-                                    WidgetSpan(
-                                      alignment: PlaceholderAlignment.top,
-                                      child: Image.asset(
-                                        'assets/images/asterik.png',
-                                        width: 20,
-                                        color: const Color(0xFF1E1E1E),
-                                      ),
-                                    ),
-                                  ]),
+                                Image.asset(
+                                  'assets/images/plotd-title.png',
+                                  height: 32,
                                 ),
                                 const Icon(Icons.notifications_outlined, color: Colors.black, size: 28),
                               ],
