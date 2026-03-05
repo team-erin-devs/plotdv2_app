@@ -10,11 +10,19 @@ import 'sidequest_confirmation_screen.dart';
 class PostSidequestScreen extends StatefulWidget {
   final String? initialTitle;
   final String? initialVibe;
+  final String? initialLocation;
+  final DateTime? initialDate;
+  final TimeOfDay? initialStartTime;
+  final TimeOfDay? initialEndTime;
 
   const PostSidequestScreen({
     super.key,
     this.initialTitle,
     this.initialVibe,
+    this.initialLocation,
+    this.initialDate,
+    this.initialStartTime,
+    this.initialEndTime,
   });
 
   @override
@@ -34,6 +42,16 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
 
+  bool _isLocationSuggested = false;
+  bool _isDateSuggested = false;
+  bool _isTimeSuggested = false;
+  bool _isEndTimeSuggested = false;
+
+  bool _locationApproved = false;
+  bool _dateApproved = false;
+  bool _timeApproved = false;
+  bool _endTimeApproved = false;
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +61,32 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
     if (widget.initialVibe != null) {
       selectedVibe = widget.initialVibe!;
     }
+    if (widget.initialLocation != null) {
+      _locationController.text = widget.initialLocation!;
+      _isLocationSuggested = true;
+    }
+    if (widget.initialDate != null) {
+      _selectedDate = widget.initialDate;
+      _isDateSuggested = true;
+    }
+    if (widget.initialStartTime != null) {
+      _startTime = widget.initialStartTime;
+      _isTimeSuggested = true;
+    }
+    if (widget.initialEndTime != null) {
+      _endTime = widget.initialEndTime;
+      _isEndTimeSuggested = true;
+    }
+
+    _locationController.addListener(() {
+      if (_isLocationSuggested && !_locationApproved) {
+        if (_locationController.text != widget.initialLocation) {
+          setState(() {
+            _locationApproved = true;
+          });
+        }
+      }
+    });
   }
 
   @override
@@ -68,7 +112,12 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
       },
     );
     if (picked != null) {
-      setState(() => _selectedDate = picked);
+      setState(() {
+        _selectedDate = picked;
+        if (_isDateSuggested) {
+          _dateApproved = true;
+        }
+      });
     }
   }
 
@@ -91,8 +140,17 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
     );
     if (picked != null) {
       setState(() {
-        if (isStart) _startTime = picked;
-        else _endTime = picked;
+        if (isStart) {
+          _startTime = picked;
+          if (_isTimeSuggested) {
+            _timeApproved = true;
+          }
+        } else {
+          _endTime = picked;
+          if (_isEndTimeSuggested) {
+            _endTimeApproved = true;
+          }
+        }
       });
     }
   }
@@ -105,6 +163,22 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
     }
     if (_selectedDate == null || _startTime == null) {
       _showError('please pick a date and start time!');
+      return;
+    }
+    if (_isLocationSuggested && !_locationApproved) {
+      _showError('please approve or change the suggested location!');
+      return;
+    }
+    if (_isDateSuggested && !_dateApproved) {
+      _showError('please approve or change the suggested date!');
+      return;
+    }
+    if (_isTimeSuggested && !_timeApproved) {
+      _showError('please approve or change the suggested start time!');
+      return;
+    }
+    if (_isEndTimeSuggested && !_endTimeApproved) {
+      _showError('please approve or change the suggested end time!');
       return;
     }
 
@@ -294,10 +368,15 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
                         // ── Location ──
                         _buildLabel('Location'),
                         const SizedBox(height: 8),
-                        _buildInputField(
+                        _buildInputFieldWithSuggestion(
                            child: TextField(
                               controller: _locationController,
-                              style: GoogleFonts.plusJakartaSans(fontSize: 15, color: Colors.black87, fontWeight: FontWeight.w500),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 15, 
+                                color: (_isLocationSuggested && !_locationApproved) ? const Color(0xFFC78B00) : Colors.black87, 
+                                fontWeight: FontWeight.w500,
+                                fontStyle: (_isLocationSuggested && !_locationApproved) ? FontStyle.italic : FontStyle.normal,
+                              ),
                               decoration: InputDecoration(
                                  hintText: 'Enter location',
                                  hintStyle: GoogleFonts.plusJakartaSans(color: Colors.grey[500], fontSize: 15),
@@ -305,7 +384,10 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
                                  isDense: true,
                               ),
                            ),
-                           suffixIcon: Icons.location_on,
+                           defaultIcon: Icons.location_on,
+                           isSuggested: _isLocationSuggested,
+                           isApproved: _locationApproved,
+                           onApprove: () => setState(() => _locationApproved = !_locationApproved),
                         ),
                         const SizedBox(height: 20),
           
@@ -314,16 +396,22 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
                         const SizedBox(height: 8),
                         GestureDetector(
                            onTap: _selectDate,
-                           child: _buildInputField(
+                           child: _buildInputFieldWithSuggestion(
                               child: Text(
                                  _selectedDate == null ? 'Choose date' : DateFormat('MMM d, yyyy').format(_selectedDate!),
                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 15,
-                                    color: _selectedDate == null ? Colors.grey[500] : Colors.black87,
+                                    color: _selectedDate == null 
+                                        ? Colors.grey[500] 
+                                        : ((_isDateSuggested && !_dateApproved) ? const Color(0xFFC78B00) : Colors.black87),
                                     fontWeight: _selectedDate == null ? FontWeight.w400 : FontWeight.w500,
+                                    fontStyle: (_isDateSuggested && !_dateApproved) ? FontStyle.italic : FontStyle.normal,
                                  ),
                               ),
-                              suffixIcon: Icons.calendar_today_outlined,
+                              defaultIcon: Icons.calendar_today_outlined,
+                              isSuggested: _isDateSuggested,
+                              isApproved: _dateApproved,
+                              onApprove: () => setState(() => _dateApproved = !_dateApproved),
                            ),
                         ),
                         const SizedBox(height: 20),
@@ -339,16 +427,22 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
                                        const SizedBox(height: 8),
                                        GestureDetector(
                                           onTap: () => _selectTime(true),
-                                          child: _buildInputField(
+                                          child: _buildInputFieldWithSuggestion(
                                              child: Text(
                                                 _startTime == null ? 'Choose time' : _startTime!.format(context).toLowerCase(),
                                                 style: GoogleFonts.plusJakartaSans(
                                                    fontSize: 15,
-                                                   color: _startTime == null ? Colors.grey[500] : Colors.black87,
+                                                   color: _startTime == null 
+                                                       ? Colors.grey[500] 
+                                                       : ((_isTimeSuggested && !_timeApproved) ? const Color(0xFFC78B00) : Colors.black87),
                                                    fontWeight: _startTime == null ? FontWeight.w400 : FontWeight.w500,
+                                                   fontStyle: (_isTimeSuggested && !_timeApproved) ? FontStyle.italic : FontStyle.normal,
                                                 ),
                                              ),
-                                             suffixIcon: Icons.access_time,
+                                             defaultIcon: Icons.access_time,
+                                             isSuggested: _isTimeSuggested,
+                                             isApproved: _timeApproved,
+                                             onApprove: () => setState(() => _timeApproved = !_timeApproved),
                                           ),
                                        ),
                                     ],
@@ -363,16 +457,22 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
                                        const SizedBox(height: 8),
                                        GestureDetector(
                                           onTap: () => _selectTime(false),
-                                          child: _buildInputField(
+                                          child: _buildInputFieldWithSuggestion(
                                              child: Text(
                                                 _endTime == null ? 'Choose time' : _endTime!.format(context).toLowerCase(),
                                                 style: GoogleFonts.plusJakartaSans(
                                                    fontSize: 15,
-                                                   color: _endTime == null ? Colors.grey[500] : Colors.black87,
+                                                   color: _endTime == null 
+                                                       ? Colors.grey[500] 
+                                                       : ((_isEndTimeSuggested && !_endTimeApproved) ? const Color(0xFFC78B00) : Colors.black87),
                                                    fontWeight: _endTime == null ? FontWeight.w400 : FontWeight.w500,
+                                                   fontStyle: (_isEndTimeSuggested && !_endTimeApproved) ? FontStyle.italic : FontStyle.normal,
                                                 ),
                                              ),
-                                             suffixIcon: Icons.access_time,
+                                             defaultIcon: Icons.access_time,
+                                             isSuggested: _isEndTimeSuggested,
+                                             isApproved: _endTimeApproved,
+                                             onApprove: () => setState(() => _endTimeApproved = !_endTimeApproved),
                                           ),
                                        ),
                                     ],
@@ -573,6 +673,50 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
            children: [
               Expanded(child: child),
               Icon(suffixIcon, color: Colors.grey[600], size: 20),
+           ],
+        ),
+     );
+  }
+
+  Widget _buildInputFieldWithSuggestion({
+    required Widget child,
+    required IconData defaultIcon,
+    required bool isSuggested,
+    required bool isApproved,
+    required VoidCallback onApprove,
+  }) {
+     return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+           color: isSuggested && !isApproved ? const Color(0xFFFFF9E6) : Colors.white,
+           border: Border.all(color: (isSuggested && !isApproved) ? const Color(0xFFFFB300) : Colors.grey[300]!),
+           borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+           children: [
+              Expanded(child: child),
+              if (isSuggested)
+                GestureDetector(
+                  onTap: onApprove,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: isApproved ? const Color(0xFF4CAF50) : Colors.transparent,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isApproved ? const Color(0xFF4CAF50) : const Color(0xFFFFB300),
+                        width: 2,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.check,
+                      size: 16,
+                      color: isApproved ? Colors.white : const Color(0xFFFFB300),
+                    ),
+                  ),
+                )
+              else
+                Icon(defaultIcon, color: Colors.grey[600], size: 20),
            ],
         ),
      );

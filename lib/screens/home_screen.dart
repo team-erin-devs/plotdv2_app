@@ -67,15 +67,15 @@ class _HomeSidequest {
 
 // ─── Sidequest idea templates ────────────────────────────────────────────────
 
-final List<Map<String, String>> _sidequestIdeas = [
-  {'title': 'coffee run and study session', 'vibe': 'productive'},
-  {'title': 'sunset walk at the park', 'vibe': 'chill'},
-  {'title': 'pickup basketball game', 'vibe': 'active'},
-  {'title': 'boba and board games', 'vibe': 'social'},
-  {'title': 'late night ramen run', 'vibe': 'fun'},
-  {'title': 'morning yoga on the quad', 'vibe': 'active'},
-  {'title': 'thrift shopping trip', 'vibe': 'fun'},
-  {'title': 'group cooking night', 'vibe': 'social'},
+final List<Map<String, dynamic>> _sidequestIdeas = [
+  {'title': 'coffee run and study session', 'vibe': 'productive', 'location': 'Common Ground Coffee', 'hoursFromNow': 2},
+  {'title': 'sunset walk at the park', 'vibe': 'chill', 'location': 'City Park', 'hoursFromNow': 4},
+  {'title': 'pickup basketball game', 'vibe': 'active', 'location': 'The ARC', 'hoursFromNow': 24},
+  {'title': 'boba and board games', 'vibe': 'social', 'location': 'Sharetea', 'hoursFromNow': 3},
+  {'title': 'late night ramen run', 'vibe': 'fun', 'location': 'Ramen Shop', 'hoursFromNow': 10},
+  {'title': 'morning yoga on the quad', 'vibe': 'active', 'location': 'Main Quad', 'hoursFromNow': 18},
+  {'title': 'thrift shopping trip', 'vibe': 'fun', 'location': 'Goodwill', 'hoursFromNow': 48},
+  {'title': 'group cooking night', 'vibe': 'social', 'location': 'My Apartment', 'hoursFromNow': 72},
 ];
 
 // ─── Home Screen ─────────────────────────────────────────────────────────────
@@ -387,8 +387,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     child: Opacity(
                                       opacity: opacity,
                                       child: _InspoCard(
-                                        title: idea['title']!,
-                                        vibe: idea['vibe']!,
+                                        idea: idea,
                                       ),
                                     ),
                                   );
@@ -431,13 +430,17 @@ class _HomeScreenState extends State<HomeScreen> {
 // ─── Inspo Card ──────────────────────────────────────────────────────────────
 
 class _InspoCard extends StatelessWidget {
-  final String title;
-  final String vibe;
+  final Map<String, dynamic> idea;
 
-  const _InspoCard({required this.title, required this.vibe});
+  const _InspoCard({required this.idea});
 
   @override
   Widget build(BuildContext context) {
+    final title = idea['title'] as String;
+    final vibe = idea['vibe'] as String;
+    final location = idea['location'] as String;
+    final hoursFromNow = idea['hoursFromNow'] as int;
+
     // Capitalize first letter
     final displayTitle = title.isNotEmpty 
         ? '${title[0].toUpperCase()}${title.substring(1)}' 
@@ -472,12 +475,26 @@ class _InspoCard extends StatelessWidget {
             child: BouncingButton(
               child: ElevatedButton(
                 onPressed: () {
+                  final now = DateTime.now();
+                  
+                  // Round to the next reasonable half hour
+                  int diffMinutes = 30 - (now.minute % 30);
+                  DateTime roundedNow = now.add(Duration(minutes: diffMinutes));
+                  roundedNow = DateTime(roundedNow.year, roundedNow.month, roundedNow.day, roundedNow.hour, roundedNow.minute);
+
+                  final targetDate = roundedNow.add(Duration(hours: hoursFromNow));
+                  final endDate = targetDate.add(const Duration(hours: 2));
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => PostSidequestScreen(
                         initialTitle: title,
                         initialVibe: vibe,
+                        initialLocation: location,
+                        initialDate: targetDate,
+                        initialStartTime: TimeOfDay.fromDateTime(targetDate),
+                        initialEndTime: TimeOfDay.fromDateTime(endDate),
                       ),
                     ),
                   );
