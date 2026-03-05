@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'bouncing_button.dart';
@@ -224,20 +225,10 @@ class SidequestCard extends StatelessWidget {
                ],
                shape: BoxShape.circle,
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Image.asset(
-                  'assets/images/asterik.png',
-                  width: 50,
-                  color: Colors.white,
-                ),
-                Image.asset(
-                  'assets/images/asterik.png',
-                  width: 44,
-                  color: _accentColor,
-                ),
-              ],
+            child: SvgPicture.asset(
+              'assets/images/asterik.svg',
+              width: 50,
+              theme: SvgTheme(currentColor: _accentColor),
             ),
           ),
         ),

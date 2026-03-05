@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/authenticated_api_service.dart';
 import '../widgets/sidequest_card.dart';
@@ -192,8 +193,7 @@ class _SearchScreenState extends State<SearchScreen> {
               ? const Center(
                   child: CircularProgressIndicator(color: Color(0xFFE8837C)))
               : SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 16),
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -297,7 +297,11 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Center(
           child: Column(
             children: [
-              Image.asset('assets/images/asterik.png', width: 40, color: const Color(0xFFE8837C)),
+              SvgPicture.asset(
+                'assets/images/asterik.svg',
+                width: 40,
+                theme: const SvgTheme(currentColor: Color(0xFFE8837C)),
+              ),
               const SizedBox(height: 10),
               Text(
                 'no users found',

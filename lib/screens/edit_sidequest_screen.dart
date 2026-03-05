@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'sidequest_confirmation_screen.dart';
 
 class EditSidequestScreen extends StatefulWidget {
   const EditSidequestScreen({super.key});
@@ -388,7 +389,18 @@ class _EditSidequestScreenState extends State<EditSidequestScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.pushNamed(context, '/sidequest-confirmation');
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        opaque: false,
+                        pageBuilder: (_, __, ___) => const SidequestConfirmationScreen(
+                          title: 'coffee run and study session',
+                          isJoin: false,
+                          accentColor: Color(0xFFFFB300),
+                        ),
+                        transitionDuration: Duration.zero,
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFFB300),

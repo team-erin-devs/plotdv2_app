@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
@@ -159,11 +160,11 @@ class _PastSidequestScreenState extends State<PastSidequestScreen> {
           onPressed: () => _handleRating(index + 1),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4.0),
-            child: Image.asset(
-              'assets/images/asterik.png',
+            child: SvgPicture.asset(
+              'assets/images/asterik.svg',
               width: 48,
               height: 48,
-              color: isFilled ? const Color(0xFFFFB300) : Colors.grey[300], // Tint the image
+              theme: SvgTheme(currentColor: isFilled ? const Color(0xFFFFB300) : Colors.grey[300]!),
             ),
           ),
         );

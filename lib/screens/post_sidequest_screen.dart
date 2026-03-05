@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:intl/intl.dart';
 import '../services/authenticated_api_service.dart';
 import '../widgets/bouncing_button.dart';
+import 'sidequest_confirmation_screen.dart';
 
 class PostSidequestScreen extends StatefulWidget {
   final String? initialTitle;
@@ -150,7 +151,18 @@ class _PostSidequestScreenState extends State<PostSidequestScreen> {
           // Clear stack and go to home screen explicitly (to avoid dumping to welcome)
           Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
           // Then push the confirmation on top
-          Navigator.pushNamed(context, '/sidequest-confirmation');
+          Navigator.push(
+            context,
+            PageRouteBuilder(
+              opaque: false,
+              pageBuilder: (_, __, ___) => SidequestConfirmationScreen(
+                title: title,
+                isJoin: false,
+                accentColor: postToBoard ? const Color(0xFF64A8DB) : const Color(0xFFFFB300),
+              ),
+              transitionDuration: Duration.zero,
+            ),
+          );
           // Reset form
           _titleController.clear();
           _locationController.clear();

@@ -12,7 +12,6 @@ import 'package:team_erin_app/screens/onboarding_screen.dart';
 import 'package:team_erin_app/screens/search_screen.dart';
 import 'package:team_erin_app/widgets/auth_guard.dart';
 import 'package:team_erin_app/screens/post_sidequest_screen.dart';
-import 'package:team_erin_app/screens/sidequest_confirmation_screen.dart';
 import 'services/auth_service.dart';
 
 // GLOBAL KEY HERE
@@ -54,11 +53,11 @@ class MyApp extends StatelessWidget {
       ),
       home: const WelcomeScreen(),
       routes: {
+        '/welcome': (context) => const WelcomeScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/onboarding': (context) => const OnboardingScreen(),
         '/home': (context) => AuthGuard(child: const MainNavigation()),
-        '/sidequest-confirmation': (context) => const SidequestConfirmationScreen(),
       },
     );
   }

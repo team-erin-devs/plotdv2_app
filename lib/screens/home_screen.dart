@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/authenticated_api_service.dart';
 import '../widgets/sidequest_card.dart';
 import '../widgets/bouncing_button.dart';
+import '../widgets/rate_sidequest_sheet.dart';
 import 'sidequest_detail_screen.dart';
 import 'post_sidequest_screen.dart';
 
@@ -81,11 +83,17 @@ final List<Map<String, String>> _sidequestIdeas = [
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
+  static void resetDemoState() {
+    _HomeScreenState._hasShownRatePrompt = false;
+  }
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static bool _hasShownRatePrompt = false;
+
   String? _firstName;
   String? _username;
   List<_HomeSidequest> _activeQuests = [];
@@ -145,6 +153,37 @@ class _HomeScreenState extends State<HomeScreen> {
       } catch (_) {}
 
       final now = DateTime.now();
+      
+      // Separate out past quests before filtering
+      final pastQuests = allQuests.where((q) => q.eventDatetime.isBefore(now)).toList();
+      
+      if (!_hasShownRatePrompt && pastQuests.isNotEmpty && mounted) {
+        _hasShownRatePrompt = true;
+        
+        // Pick a random past quest
+        final randomPastQuest = pastQuests[math.Random().nextInt(pastQuests.length)];
+        
+        // Trigger modal after layout completes
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Future.delayed(const Duration(milliseconds: 600), () {
+            if (mounted) {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => RateSidequestSheet(
+                  sidequestId: randomPastQuest.id,
+                  sidequestTitle: randomPastQuest.title,
+                  hostName: randomPastQuest.creatorFirstName,
+                  isOwnQuest: randomPastQuest.isOwn,
+                ),
+              );
+            }
+          });
+        });
+      }
+      
+      // Remove past quests from active view (keeping 4 hrs grace period)
       allQuests.removeWhere((q) => q.eventDatetime.isBefore(now.subtract(const Duration(hours: 4))));
       allQuests.sort((a, b) => a.eventDatetime.compareTo(b.eventDatetime));
 
@@ -173,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: const Color(0xFFE8837C),
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -241,7 +280,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             child: Column(
                               children: [
-                                Image.asset('assets/images/asterik.png', width: 36, color: const Color(0xFFE8837C)),
+                                SvgPicture.asset(
+                                  'assets/images/asterik.svg',
+                                  width: 36,
+                                  theme: const SvgTheme(currentColor: Color(0xFFE8837C)),
+                                ),
                                 const SizedBox(height: 10),
                                 Text(
                                   'no active quests!',

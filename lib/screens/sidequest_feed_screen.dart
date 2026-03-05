@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../services/authenticated_api_service.dart';
@@ -277,8 +278,7 @@ class _SidequestFeedScreenState extends State<SidequestFeedScreen> {
                       color: const Color(0xFFE8837C),
                       child: SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 16),
+                        padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

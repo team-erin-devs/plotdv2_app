@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:convert';
 
 class ViewIDCard extends StatefulWidget {
+  final String displayName;
   final String username;
-  final String handle;
   final String? profilePictureUrl;
+  final int sidequestsCompleted;
+  final int sidequestsHosted;
   
   const ViewIDCard({
     super.key,
+    required this.displayName,
     required this.username,
-    required this.handle,
     this.profilePictureUrl,
+    required this.sidequestsCompleted,
+    required this.sidequestsHosted,
   });
 
   @override
@@ -49,7 +54,7 @@ class _ViewIDCardState extends State<ViewIDCard> with SingleTickerProviderStateM
 
   void _onPanUpdate(DragUpdateDetails details) {
     setState(() {
-      _dragOffset += details.delta * 0.5; // Reduce sensitivity
+      _dragOffset += details.delta * 0.5;
       _dragOffset = Offset(
         _dragOffset.dx.clamp(-40.0, 40.0),
         _dragOffset.dy.clamp(-40.0, 40.0),
@@ -65,20 +70,16 @@ class _ViewIDCardState extends State<ViewIDCard> with SingleTickerProviderStateM
       parent: _animationController,
       curve: Curves.elasticOut,
     ));
-    
     _animationController.forward(from: 0);
   }
 
   String _generateQRData() {
-    // Convert username to base64
     final base64Username = base64Encode(utf8.encode(widget.username));
     return 'https://plotd.com/join/referral-$base64Username';
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
@@ -93,148 +94,192 @@ class _ViewIDCardState extends State<ViewIDCard> with SingleTickerProviderStateM
           alignment: Alignment.center,
           child: Container(
             constraints: const BoxConstraints(
-              maxWidth: 400,
-              maxHeight: 600,
+              maxWidth: 340,
+              maxHeight: 520,
             ),
+            // The 4px gradient border is achieved by wrapping the main white card
+            // in a slightly larger container with a gradient background
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(8),
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color(0xFF1a1a2e),
-                  Color(0xFF16213e),
-                  Color(0xFF0f3460),
+                  Color(0xFFFFB300), // Yellow
+                  Color(0xFFE8837C), // Pink/Red
+                  Color(0xFF64A8DB), // Blue
+                  Color(0xFFFFB300), // Yellow
                 ],
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.5),
-                  blurRadius: 30,
-                  spreadRadius: 5,
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 10),
                 ),
               ],
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: Stack(
-                children: [
-                  // Animated shine effect
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: ShinePainter(offset: _dragOffset),
+            // Inner white card
+            child: Container(
+              margin: const EdgeInsets.all(4), // Thickness of the gradient border
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F4F0), // Off-white matched to app bg
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Stack(
+                  children: [
+                    // Close button overlay
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: IconButton(
+                        icon: const Icon(Icons.close, color: Colors.black54, size: 22),
+                        onPressed: () => Navigator.pop(context),
+                      ),
                     ),
-                  ),
-                  
-                  // Content
-                  SafeArea(
-                    child: SingleChildScrollView(
+                    SafeArea(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            // Back button
-                            Align(
-                              alignment: Alignment.topRight,
-                              child: IconButton(
-                                icon: const Icon(Icons.close, color: Colors.white, size: 24),
-                                onPressed: () => Navigator.pop(context),
-                              ),
-                            ),
-                            
-                            const SizedBox(height: 10),
-                            
-                            // Profile picture placeholder
-                            Container(
-                              width: 100,
-                              height: 100,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 3),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.purple.withOpacity(0.5),
-                                    blurRadius: 20,
-                                    spreadRadius: 5,
+                            const SizedBox(height: 12),
+                            // Profile picture with asterisk
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 3),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.1),
+                                        blurRadius: 10,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              child: CircleAvatar(
-                                radius: 50,
-                                backgroundColor: Colors.grey[800],
-                                backgroundImage: widget.profilePictureUrl != null && widget.profilePictureUrl!.isNotEmpty
-                                    ? (widget.profilePictureUrl!.startsWith('images/') || widget.profilePictureUrl!.startsWith('assets/images/')
-                                        ? AssetImage(widget.profilePictureUrl!.startsWith('images/') ? 'assets/${widget.profilePictureUrl}' : widget.profilePictureUrl!)
-                                        : NetworkImage(widget.profilePictureUrl!)) as ImageProvider
-                                    : null,
-                                child: widget.profilePictureUrl == null || widget.profilePictureUrl!.isEmpty
-                                    ? Icon(
-                                        Icons.person,
-                                        size: 50,
-                                        color: Colors.grey[400],
-                                      )
-                                    : null,
-                              ),
+                                  child: CircleAvatar(
+                                    radius: 46,
+                                    backgroundColor: const Color(0xFFE0E0E0),
+                                    backgroundImage: widget.profilePictureUrl != null && widget.profilePictureUrl!.isNotEmpty
+                                        ? (widget.profilePictureUrl!.startsWith('images/') || widget.profilePictureUrl!.startsWith('assets/images/')
+                                            ? AssetImage(widget.profilePictureUrl!.startsWith('images/') ? 'assets/${widget.profilePictureUrl}' : widget.profilePictureUrl!)
+                                            : NetworkImage(widget.profilePictureUrl!)) as ImageProvider
+                                        : null,
+                                    child: widget.profilePictureUrl == null || widget.profilePictureUrl!.isEmpty
+                                        ? const Icon(Icons.person, size: 46, color: Colors.white)
+                                        : null,
+                                  ),
+                                ),
+                                // Golden asterisk overlapping
+                                Positioned(
+                                  bottom: -10,
+                                  left: -20,
+                                  child: SvgPicture.asset(
+                                    'assets/images/asterik.svg',
+                                    width: 52,
+                                    theme: const SvgTheme(currentColor: Color(0xFFFFB300)),
+                                  ),
+                                ),
+                              ],
                             ),
                             
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 16),
                             
-                            // Name
+                            // Names
                             Text(
-                              widget.username,
-                              style: GoogleFonts.epilogue(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
+                              widget.displayName,
+                              style: GoogleFonts.plusJakartaSans(
+                                color: const Color(0xFF1E1E1E),
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            Text(
+                              '@${widget.username}',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: const Color(0xFF5F5F5F),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                             
-                            const SizedBox(height: 30),
+                            const SizedBox(height: 24),
+                            
+                            // Stats Notes Row
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: _buildStatStickyNote(
+                                    label: 'Sidequests\ncompleted',
+                                    value: widget.sidequestsCompleted.toString(),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildStatStickyNote(
+                                    label: 'Sidequests\nhosted',
+                                    value: widget.sidequestsHosted.toString(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            
+                            const SizedBox(height: 24),
                             
                             // QR Code
                             Container(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.3),
-                                    blurRadius: 15,
-                                    spreadRadius: 3,
-                                  ),
-                                ],
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: const Color(0xFFFFB300), width: 1),
                               ),
                               child: QrImageView(
                                 data: _generateQRData(),
                                 version: QrVersions.auto,
-                                size: 200,
+                                size: 100,
                                 backgroundColor: Colors.white,
                                 errorCorrectionLevel: QrErrorCorrectLevel.M,
                               ),
                             ),
                             
-                            const SizedBox(height: 20),
+                            const Spacer(),
                             
-                            // URL text
-                            Text(
-                              'plotd.com/join',
-                              style: GoogleFonts.urbanist(
-                                color: Colors.grey[300],
-                                fontSize: 14,
-                                letterSpacing: 0.5,
-                                fontWeight: FontWeight.w500,
+                            // Bottom join text
+                            Text.rich(
+                              TextSpan(
+                                text: 'Join ',
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: const Color(0xFF1E1E1E),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text: widget.displayName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                  const TextSpan(text: ' on Plotd!'),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 20),
                           ],
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -242,32 +287,89 @@ class _ViewIDCardState extends State<ViewIDCard> with SingleTickerProviderStateM
       ),
     );
   }
+
+  Widget _buildStatStickyNote({required String label, required String value}) {
+    return Stack(
+      children: [
+        ClipPath(
+          clipper: _NoteClipper(),
+          child: Container(
+            height: 90,
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(10, 14, 10, 10),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFF3D4), // Light yellow
+            ),
+            child: Column(
+              children: [
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    color: const Color(0xFF888888),
+                    fontWeight: FontWeight.w500,
+                    height: 1.1,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  value,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF1E1E1E),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Positioned(
+          top: 0,
+          right: 0,
+          child: CustomPaint(
+            size: const Size(18, 18),
+            painter: _FoldPainter(),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
-class ShinePainter extends CustomPainter {
-  final Offset offset;
-  
-  ShinePainter({required this.offset});
-
+class _NoteClipper extends CustomClipper<Path> {
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment(-1.0 + offset.dx * 0.01, -1.0 + offset.dy * 0.01),
-        end: Alignment(1.0 + offset.dx * 0.01, 1.0 + offset.dy * 0.01),
-        colors: [
-          Colors.white.withOpacity(0.0),
-          Colors.white.withOpacity(0.05),
-          Colors.purple.withOpacity(0.15),
-          Colors.blue.withOpacity(0.1),
-          Colors.white.withOpacity(0.0),
-        ],
-        stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-    
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+  Path getClip(Size size) {
+    var path = Path();
+    path.lineTo(size.width - 18, 0); // leave room for corner fold
+    path.lineTo(size.width, 18);
+    path.lineTo(size.width, size.height);
+    path.lineTo(0, size.height);
+    path.close();
+    return path;
   }
 
   @override
-  bool shouldRepaint(ShinePainter oldDelegate) => offset != oldDelegate.offset;
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+class _FoldPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFFFB300) // Deep yellow fold
+      ..style = PaintingStyle.fill;
+      
+    final path = Path();
+    path.moveTo(0, 0);
+    path.lineTo(size.width, size.height);
+    path.lineTo(0, size.height);
+    path.close();
+    
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

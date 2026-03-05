@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../services/authenticated_api_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/bouncing_button.dart';
+import '../widgets/view_id_card.dart';
 import 'past_sidequest_screen.dart';
+import 'home_screen.dart'; // Add for demo reset
 
 class ProfileScreen extends StatefulWidget {
   final int? userId;
@@ -242,7 +245,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: const Color(0xFFE8837C),
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -263,7 +266,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               'assets/images/plotd-title.png',
                               height: 32,
                             ),
-                            const Icon(Icons.notifications_none, size: 28, color: Colors.black87),
+                            if (_isOwnProfile)
+                              IconButton(
+                                icon: const Icon(Icons.logout, size: 24, color: Colors.black87),
+                                onPressed: () async {
+                                  // Log out but keep background cache alive for demo purposes
+                                  HomeScreen.resetDemoState();
+                                  await AuthenticatedApiService.clearTokens();
+                                  if (mounted) {
+                                    Navigator.of(context).pushNamedAndRemoveUntil('/welcome', (route) => false);
+                                  }
+                                },
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              )
+                            else
+                              const SizedBox(width: 24), // Balance the flex
                           ],
                         ),
                         const SizedBox(height: 28),
@@ -379,7 +397,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: OutlinedButton(
-                                          onPressed: () {},
+                                          onPressed: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) => ViewIDCard(
+                                                displayName: _displayName,
+                                                username: _username,
+                                                profilePictureUrl: _profilePictureUrl,
+                                                sidequestsCompleted: _sidequestsCompleted,
+                                                sidequestsHosted: _sidequestsHosted,
+                                              ),
+                                            );
+                                          },
                                           style: OutlinedButton.styleFrom(
                                             foregroundColor: Colors.black,
                                             side: const BorderSide(color: Color(0xFF2D2D2D)),

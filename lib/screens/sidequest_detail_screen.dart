@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../services/authenticated_api_service.dart';
-
+import 'sidequest_confirmation_screen.dart';
 
 // Data Model matching detailed view requirements
 class SidequestDetail {
@@ -142,17 +142,38 @@ class _SidequestDetailScreenState extends State<SidequestDetailScreen> {
     try {
       final response = await AuthenticatedApiService.authenticatedPost(endpoint, {});
       if (response.statusCode == 200) {
+        final title = _sq!.title;
+        final hostName = _sq!.creatorFirstName;
+        final accentColor = _accentColor;
+        
         _fetchDetails(); // Reload data
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(isGoing ? 'You left the sidequest.' : 'You joined the plot! 🎉',
-                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
-              backgroundColor: const Color(0xFF455A64),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          );
+          if (!isGoing) {
+            Navigator.push(
+              context,
+              PageRouteBuilder(
+                opaque: false,
+                pageBuilder: (_, __, ___) => SidequestConfirmationScreen(
+                  title: title,
+                  hostName: hostName,
+                  isJoin: true,
+                  accentColor: accentColor,
+                ),
+                transitionDuration: const Duration(milliseconds: 300),
+                transitionsBuilder: (_, animation, __, child) => FadeTransition(opacity: animation, child: child),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('You left the sidequest.',
+                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
+                backgroundColor: const Color(0xFF455A64),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            );
+          }
         }
       } else {
         final body = jsonDecode(response.body);

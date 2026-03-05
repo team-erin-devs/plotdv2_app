@@ -93,8 +93,21 @@ class AuthenticatedApiService {
     }
   }
 
+  // Demo cache to make navigation instant
+  static final Map<String, http.Response> _getCache = {};
+
+  static void _clearCache() {
+    _getCache.clear();
+  }
+
   /// Make an authenticated GET request
   static Future<http.Response> authenticatedGet(String endpoint) async {
+    if (_getCache.containsKey(endpoint)) {
+      // Fire a background refresh, but return the cached result instantly for the demo
+      _backgroundFetch(endpoint);
+      return _getCache[endpoint]!;
+    }
+
     final headers = await getAuthHeaders();
     final response = await http.get(
       Uri.parse('$baseUrl$endpoint'),
@@ -106,14 +119,35 @@ class AuthenticatedApiService {
       final refreshed = await refreshAccessToken();
       if (refreshed) {
         final newHeaders = await getAuthHeaders();
-        return await http.get(
+        final retryResponse = await http.get(
           Uri.parse('$baseUrl$endpoint'),
           headers: newHeaders,
         );
+        if (retryResponse.statusCode == 200) {
+          _getCache[endpoint] = retryResponse;
+        }
+        return retryResponse;
       }
     }
 
+    if (response.statusCode == 200 && !endpoint.contains('presign')) {
+      _getCache[endpoint] = response;
+    }
+
     return response;
+  }
+
+  static Future<void> _backgroundFetch(String endpoint) async {
+    try {
+      final headers = await getAuthHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl$endpoint'),
+        headers: headers,
+      );
+      if (response.statusCode == 200) {
+        _getCache[endpoint] = response;
+      }
+    } catch (_) {}
   }
 
   /// Make an authenticated POST request
@@ -133,12 +167,20 @@ class AuthenticatedApiService {
       final refreshed = await refreshAccessToken();
       if (refreshed) {
         final newHeaders = await getAuthHeaders();
-        return await http.post(
+        final retryResponse = await http.post(
           Uri.parse('$baseUrl$endpoint'),
           headers: newHeaders,
           body: jsonEncode(body),
         );
+        if (retryResponse.statusCode == 200 || retryResponse.statusCode == 201) {
+          _clearCache();
+        }
+        return retryResponse;
       }
+    }
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      _clearCache();
     }
 
     return response;
@@ -160,13 +202,17 @@ class AuthenticatedApiService {
       final refreshed = await refreshAccessToken();
       if (refreshed) {
         final newHeaders = await getAuthHeaders();
-        return await http.put(
+        final retryResponse = await http.put(
           Uri.parse('$baseUrl$endpoint'),
           headers: newHeaders,
           body: jsonEncode(body),
         );
+        if (retryResponse.statusCode == 200) _clearCache();
+        return retryResponse;
       }
     }
+
+    if (response.statusCode == 200) _clearCache();
 
     return response;
   }
@@ -187,13 +233,17 @@ class AuthenticatedApiService {
       final refreshed = await refreshAccessToken();
       if (refreshed) {
         final newHeaders = await getAuthHeaders();
-        return await http.patch(
+        final retryResponse = await http.patch(
           Uri.parse('$baseUrl$endpoint'),
           headers: newHeaders,
           body: jsonEncode(body),
         );
+        if (retryResponse.statusCode == 200) _clearCache();
+        return retryResponse;
       }
     }
+
+    if (response.statusCode == 200) _clearCache();
 
     return response;
   }
@@ -210,12 +260,16 @@ class AuthenticatedApiService {
       final refreshed = await refreshAccessToken();
       if (refreshed) {
         final newHeaders = await getAuthHeaders();
-        return await http.delete(
+        final retryResponse = await http.delete(
           Uri.parse('$baseUrl$endpoint'),
           headers: newHeaders,
         );
+        if (retryResponse.statusCode == 200 || retryResponse.statusCode == 204) _clearCache();
+        return retryResponse;
       }
     }
+
+    if (response.statusCode == 200 || response.statusCode == 204) _clearCache();
 
     return response;
   }

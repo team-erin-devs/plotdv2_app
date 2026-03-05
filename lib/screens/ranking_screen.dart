@@ -29,7 +29,7 @@ class _RankingScreenState extends State<RankingScreen> {
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.only(top: 20, bottom: 20),
+              padding: const EdgeInsets.only(top: 24, bottom: 20),
               child: Center(
                 child: Text(
                   'Rankings',
