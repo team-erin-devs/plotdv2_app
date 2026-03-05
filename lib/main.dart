@@ -13,12 +13,14 @@ import 'package:team_erin_app/screens/search_screen.dart';
 import 'package:team_erin_app/widgets/auth_guard.dart';
 import 'package:team_erin_app/screens/post_sidequest_screen.dart';
 import 'services/auth_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // GLOBAL KEY HERE
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
 
   final bool loggedIn = await AuthService.isAuthenticated();
 

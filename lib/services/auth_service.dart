@@ -3,10 +3,11 @@ import 'package:http/http.dart' as http;
 import '../models/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'authenticated_api_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AuthService {
   // Use http://10.0.2.2:8000/api/auth for Android emulator, and http://127.0.0.1:8000/api/auth for iOS Simulator/Web
-  static const String baseUrl = 'http://127.0.0.1:8000/api/auth';
+  static final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8000/api/auth';
 
   Future<Map<String, dynamic>> register({
     required String username,

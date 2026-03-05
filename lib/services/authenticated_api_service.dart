@@ -2,11 +2,12 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Base class for making authenticated API calls
 class AuthenticatedApiService {
   // Use http://10.0.2.2:8000 for Android emulator, and http://127.0.0.1:8000 for iOS Simulator/Web
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  static final String baseUrl = dotenv.env['API_BASE_URL_ROOT'] ?? 'http://127.0.0.1:8000';
 
   /// Get the stored access token
   static Future<String?> getAccessToken() async {
